@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Wazema | Planet Apartments - የባለአክሲዮን ክትትል ስርዓት</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, 'Noto Sans Ethiopic', sans-serif; }
+        body { background: linear-gradient(135deg, #556b2f, #1a472a); min-height: 100vh; }
+        .login-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+        .login-card { background: white; border-radius: 2rem; width: 450px; padding: 2rem; text-align: center; box-shadow: 0 25px 40px rgba(0,0,0,0.4); border-top: 5px solid #ff9800; }
+        .scrolling-title { overflow: hidden; white-space: nowrap; margin-bottom: 1rem; font-weight: bold; color: #e65100; }
+        .scrolling-title span { display: inline-block; animation: scrollText 15s linear infinite; }
+        @keyframes scrollText { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .user-type { display: flex; gap: 1rem; margin: 1.5rem 0; }
+        .user-type button { flex:1; padding: 10px; border-radius: 40px; border: 2px solid #e2e8f0; background: white; font-weight: bold; cursor: pointer; }
+        .user-type button.active { background: #ff9800; border-color: #ff9800; color: white; }
+        .pwd-wrapper { position: relative; display: flex; align-items: center; }
+        .pwd-wrapper input { width: 100%; padding: 12px; border-radius: 40px; border: 1px solid #ccc; padding-right: 40px; }
+        .toggle-eye { position: absolute; right: 15px; cursor: pointer; color: #ff9800; background: white; }
+        .login-btn { background: linear-gradient(95deg, #1a472a, #0b2b1a); color: white; width: 100%; padding: 12px; border: none; border-radius: 40px; font-weight: bold; margin-top: 1rem; cursor: pointer; }
+        /* New spinner styles */
+        .login-spinner {
+            display: none;
+            margin: 15px auto 0;
+            width: 30px;
+            height: 30px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #ff9800;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .main-content { display: none; }
+        .top-bar { background: #1a472a; color: white; padding: 0.8rem 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid #ff9800; }
+        .badge-admin { background: #ff9800; border-radius: 30px; padding: 0.2rem 1rem; font-size: 0.7rem; color: #1a472a; font-weight: bold; }
+        .badge-member { background: #2c7da0; border-radius: 30px; padding: 0.2rem 1rem; font-size: 0.7rem; color: white; }
+        .tab-bar { background: white; display: flex; justify-content: center; gap: 1rem; padding: 0.8rem; flex-wrap: wrap; }
+        .tab-btn { background: #e8f5e9; border: none; padding: 8px 22px; border-radius: 40px; font-weight: 600; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; color: #1a472a; }
+        .tab-btn.active { background: #ff9800; color: white; }
+        .container { max-width: 1400px; margin: 1.5rem auto; padding: 0 1rem; }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+        .card { background: white; border-radius: 24px; padding: 1.2rem; margin-bottom: 1.5rem; box-shadow: 0 6px 14px rgba(0,0,0,0.08); border-top: 3px solid #ff9800; }
+        .material-nav { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; }
+        .material-btn { background: #e8f5e9; border: none; padding: 8px 18px; border-radius: 30px; font-weight: 500; cursor: pointer; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        .data-table th { background: #1a472a; color: white; padding: 10px; text-align: left; }
+        .data-table td { padding: 8px; border-bottom: 1px solid #e9ecef; }
+        .btn-sm { background: #ff9800; border: none; color: #1a472a; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; cursor: pointer; margin: 2px; display: inline-flex; gap: 4px; align-items: center; font-weight: bold; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-warning { background: #e67e22; color: white; }
+        .member-stat-panel { background: linear-gradient(120deg, #ff9800, #e65100); color: white; border-radius: 24px; padding: 1rem; display: flex; justify-content: space-between; flex-wrap: wrap; margin-bottom: 1.5rem; }
+        .admin-filter { background: #e8f5e9; padding: 10px; border-radius: 20px; margin-bottom: 15px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .summary-chips { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+        .chip-cat { background: rgba(255,255,255,0.2); border-radius: 40px; padding: 8px 16px; font-size: 0.85rem; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; min-width: 100px; }
+        .chip-cat:hover { background: rgba(255,255,255,0.35); transform: scale(1.02); }
+        .search-box { display: flex; gap: 10px; margin-bottom: 1rem; background: #e8f5e9; border-radius: 40px; padding: 8px; }
+        .collapsible-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+        .collapsible-content { display: none; padding-top: 15px; }
+        .collapsible-content.show { display: block; }
+        .footer { background: #1a472a; color: #ccc; padding: 1rem; margin-top: 2rem; border-top: 2px solid #ff9800; text-align: center; }
+        .clickable-hint { cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,0.5); }
+        .marquee-wrapper { background: #fff3cd; padding: 10px; overflow: hidden; white-space: nowrap; border-radius: 8px; margin-bottom: 15px; }
+        .marquee-content { display: inline-block; animation: scroll-left 25s linear infinite; font-weight: bold; color: #1a472a; }
+        @keyframes scroll-left { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+        .member-info-header { display: flex; flex-wrap: wrap; gap: 20px; background: #f9f9f9; padding: 15px; border-radius: 10px; border-left: 6px solid #1a472a; margin-bottom: 20px; }
+        .info-item { flex: 1; min-width: 140px; }
+        .info-item label { display: block; font-size: 11px; color: #777; font-weight: bold; }
+        .info-item span { font-size: 15px; font-weight: bold; color: #1a472a; }
+        @media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 100%; display: block !important; padding: 20px; }
+            .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            .print-table th, .print-table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+            .no-print { display: none; }
+        }
+        @media (max-width: 768px) {
+            .top-bar { flex-direction: column; text-align: center; }
+            .marquee-wrapper { white-space: normal; }
+            .scrolling-title span { animation: none; white-space: normal; }
+            .chip-cat { min-width: 80px; font-size: 0.7rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+        <div class="scrolling-title"><span><i class="fas fa-building"></i> የኮክ ትሬዲንግ ባለቤት የሆኑት ዋዜማ እና ፕላኔት አፓርትመንት</span></div>
+        <h2><i class="fas fa-chart-line"></i> የአክሲዮን ክትትል ስርዓት</h2>
+        <p>🏢 የአባላት አስተዳደር ስርዓት</p>
+        <div class="user-type">
+            <button id="adminTypeBtn" class="active" onclick="setRole('admin')"><i class="fas fa-user-shield"></i> አድሚን</button>
+            <button id="memberTypeBtn" onclick="setRole('member')"><i class="fas fa-users"></i> አባል</button>
+        </div>
+        <div class="pwd-wrapper">
+            <input type="password" id="loginPass" placeholder="ፓስዎርድ / አይዲ">
+            <i class="fas fa-eye toggle-eye" onclick="togglePass()"></i>
+        </div>
+        <button class="login-btn" onclick="handleLogin()"><i class="fas fa-sign-in-alt"></i> ይግቡ</button>
+        <div id="loginSpinner" class="login-spinner"></div>
+        <div id="loginErrorMsg" style="color:#e74c3c; font-size:0.75rem; margin-top:8px;"></div>
+    </div>
+</div>
+
+<div id="printArea" style="display:none;"></div>
+
+<div id="mainApp" class="main-content">
+    <div class="top-bar">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span id="userBadge" class="badge-admin">አድሚን</span>
+            <button class="btn-sm" onclick="logout()" style="background:#c0392b; color:white;"><i class="fas fa-sign-out-alt"></i> ውጣ</button>
+        </div>
+    </div>
+    <div class="marquee-wrapper">
+        <div class="marquee-content" id="movingAnnounce">ምንም አዲስ ማስታወቂያ የለም</div>
+    </div>
+    <div id="memberStatsHeader" class="member-info-header" style="display:none;"></div>
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="construction"><i class="fas fa-hard-hat"></i> የግንባታ ቁሳቁስ</button>
+        <button class="tab-btn" data-tab="members"><i class="fas fa-hand-holding-usd"></i> የአባላት መዋጮ</button>
+    </div>
+    <div class="container">
+        <!-- Construction Tab -->
+        <div id="constructionPane" class="tab-pane active">
+            <div class="card" style="background: linear-gradient(105deg, #ff9800, #e65100); color:white;">
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                    <div id="totalCostBox" class="clickable-hint" style="background: rgba(0,0,0,0.3); padding: 0.5rem 1rem; border-radius: 20px; cursor:pointer;">
+                        <div><i class="fas fa-chart-line"></i> ጠቅላላ ወጪ (አንዴ ይንኩ) <i class="fas fa-hand-pointer"></i></div>
+                        <div id="totalConstructionCost" style="font-size:2rem; font-weight:bold;">0.00</div>
+                        <small>ብር</small>
+                    </div>
+                    <div id="materialSummaryChips" class="summary-chips"></div>
+                </div>
+            </div>
+            <div id="detailedReportPanel" class="card" style="background:#1a472a; color:white; display:none;">
+                <h3 style="color:#ff9800;"><i class="fas fa-info-circle"></i> ዝርዝር የግንባታ ቁሳቁስ ሪፖርት</h3>
+                <div id="specStatsContainer"></div>
+            </div>
+            <div id="adminNewPurchaseWrapper" class="card" style="display:none;">
+                <div class="collapsible-header" onclick="toggleNewPurchaseForm()">
+                    <h3><i class="fas fa-cart-plus"></i> አዲስ ግዥ መዝግብ</h3>
+                    <i id="purchaseFormIcon" class="fas fa-chevron-down"></i>
+                </div>
+                <div id="newPurchaseForm" class="collapsible-content">
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;">
+                        <input type="text" id="newReceiptNo" placeholder="ተ.ቁጥር (አውቶማቲክ)">
+                        <input type="date" id="newPurchaseDate">
+                        <select id="newMaterialCat">
+                            <option value="iron">ብረት</option>
+                            <option value="nail">ሚስማር</option>
+                            <option value="cement">ሲሚንቶ</option>
+                            <option value="gravel">ጠጠር</option>
+                            <option value="ash">አሽዋ</option>
+                            <option value="others">ሌሎች</option>
+                        </select>
+                        <select id="newMaterialSubType"><option>8ሚሜ</option><option>10ሚሜ</option><option>12ሚሜ</option><option>14ሚሜ</option><option>16ሚሜ</option><option>20ሚሜ</option><option>24ሚሜ</option></select>
+                        <select id="newUnit">
+                            <option>ቁጥር</option><option>ቤርጋ</option><option>ኩንታል</option>
+                            <option>ሜትር ኩብ</option><option>ኪሎግራም</option><option>ሊትር</option><option>ሜትር</option>
+                        </select>
+                        <input type="number" id="newQuantity" step="0.01" placeholder="ብዛት">
+                        <input type="number" id="newPricePerUnit" step="0.01" placeholder="ዋጋ/አንድ">
+                        <input type="text" id="newSupplier" placeholder="አቅራቢ">
+                    </div>
+                    <button class="btn-sm btn-success" onclick="addNewPurchase()" style="margin-top:12px;"><i class="fas fa-save"></i> ግዥ መዝግብ</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="collapsible-header" onclick="togglePurchaseReport()">
+                    <h3><i class="fas fa-chart-bar"></i> የግዥ ሪፖርት (በቀን ክልል እና በምድብ)</h3>
+                    <i id="purchaseReportIcon" class="fas fa-chevron-down"></i>
+                </div>
+                <div id="purchaseReportContent" class="collapsible-content">
+                    <div class="admin-filter">
+                        <span>ከቀን:</span>
+                        <input type="date" id="purchaseReportStart">
+                        <span>እስከ ቀን:</span>
+                        <input type="date" id="purchaseReportEnd">
+                        <select id="purchaseReportCategory">
+                            <option value="all">ሁሉም ምድቦች</option>
+                            <option value="iron">ብረት</option>
+                            <option value="nail">ሚስማር</option>
+                            <option value="cement">ሲሚንቶ</option>
+                            <option value="gravel">ጠጠር</option>
+                            <option value="ash">አሽዋ</option>
+                            <option value="others">ሌሎች</option>
+                        </select>
+                        <button class="btn-sm" onclick="filterPurchaseReport()"><i class="fas fa-filter"></i> አጣራ</button>
+                        <button class="btn-sm btn-success" onclick="exportPurchaseReportExcel()"><i class="fas fa-file-excel"></i> ወደ Excel ላክ</button>
+                    </div>
+                    <div id="purchaseReportResults" style="margin-top:15px; overflow-x:auto;"></div>
+                </div>
+            </div>
+            <div class="material-nav" id="materialNav"></div>
+            <div id="materialSectionContainer"></div>
+            <div id="adminAnnounceWrapper" class="card" style="display:none;">
+                <div class="collapsible-header" onclick="toggleAnnouncements()">
+                    <h3><i class="fas fa-bullhorn"></i> ማስታወቂያዎች</h3>
+                    <i id="announceIcon" class="fas fa-chevron-down"></i>
+                </div>
+                <div id="announcementsContent" class="collapsible-content">
+                    <div style="background:#1a472a; padding:1rem; border-radius:20px; color:white;">
+                        <input type="text" id="newAnnounceText" placeholder="ፅሁፍ ወይም ሊንክ">
+                        <button class="btn-sm" onclick="addAnnouncement()">+ ጨምር</button>
+                        <div id="announcementList" style="max-height:200px; overflow-y:auto; margin-top:10px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members Tab -->
+        <div id="membersPane" class="tab-pane">
+            <div id="adminStatsCard" class="card" style="background:linear-gradient(95deg,#1a472a,#0b2b1a); color:white; display:none;">
+                <h3>አጠቃላይ ስታቲስቲክስ</h3>
+                <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                    <div>ጠቅላላ መዋጮ: <strong id="totalAllContrib">0</strong> ብር</div>
+                    <div>አጠቃላይ አክሲዮን: <strong id="totalSharesAll">0</strong></div>
+                    <div>አባላት ብዛት: <strong id="totalMembersCount">0</strong></div>
+                </div>
+            </div>
+            <div class="member-stat-panel" id="memberPersonalPanel">
+                <div>
+                    <h3><span id="currentMemberName">-</span></h3>
+                    <p><strong>ኮድ:</strong> <span id="currentMemberId">-</span> | <strong>ጾታ:</strong> <span id="currentMemberGender">-</span></p>
+                    <p><strong>አክሲዮን:</strong> <span id="currentMemberShares">0</span> | <strong>ስልክ:</strong> <span id="currentMemberPhone">-</span></p>
+                    <p><strong>አድራሻ:</strong> <span id="currentMemberAddress">-</span></p>
+                </div>
+                <div class="stat-box">
+                    <div>መደበኛ መዋጮ: <strong id="memberRegularTotal">0</strong> ብር</div>
+                    <div>ልዩ መዋጮ: <strong id="memberSpecialTotal">0</strong> ብር</div>
+                    <div>ጠቅላላ መዋጮ: <strong id="memberTotalContribution">0</strong> ብር</div>
+                    <div>የደረሰኝ ብዛት: <strong id="memberReceiptCount">0</strong></div>
+                </div>
+            </div>
+            <div id="adminContributionPanel" class="card" style="display:none;">
+                <h3>መዋጮ መዝግብ</h3>
+                <div class="admin-filter">
+                    <span>በአባልነት አይነት:</span>
+                    <label><input type="radio" name="adminMemberFilter" value="all" checked onchange="filterMembersByType('all')"> ሁሉም</label>
+                    <label><input type="radio" name="adminMemberFilter" value="Wazema" onchange="filterMembersByType('Wazema')"> ዋዜሜ</label>
+                    <label><input type="radio" name="adminMemberFilter" value="Planet" onchange="filterMembersByType('Planet')"> ፕላኔት</label>
+                </div>
+                <div class="admin-filter">
+                    <span>የመዋጮ ዓይነት:</span>
+                    <label><input type="radio" name="contributionType" value="regular" checked> መደበኛ</label>
+                    <label><input type="radio" name="contributionType" value="special"> ልዩ</label>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                    <select id="contributionMemberSelect"></select>
+                    <input type="month" id="contributionMonth">
+                    <input type="number" id="contributionAmount" placeholder="መጠን">
+                    <input type="text" id="bankCodeInput" placeholder="ባንክ ኮድ">
+                    <button class="btn-sm btn-success" onclick="addContribution()"><i class="fas fa-save"></i> መዝግብ</button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="collapsible-header" onclick="toggleContributionReport()">
+                    <h3>የመዋጮ ሪፖርት</h3>
+                    <i id="reportIcon" class="fas fa-chevron-down"></i>
+                </div>
+                <div id="contributionReportContent" class="collapsible-content">
+                    <div id="adminReportFilters" style="display:none;">
+                        <div class="admin-filter">
+                            <span>የማህበር አይነት አጣራ:</span>
+                            <label><input type="radio" name="reportMemberType" value="all" checked onchange="filterContributionReport()"> ሁሉም</label>
+                            <label><input type="radio" name="reportMemberType" value="Wazema" onchange="filterContributionReport()"> ዋዜሜ</label>
+                            <label><input type="radio" name="reportMemberType" value="Planet" onchange="filterContributionReport()"> ፕላኔት</label>
+                        </div>
+                        <div class="admin-filter">
+                            <span>የክፍያ ዓይነት አጣራ:</span>
+                            <label><input type="radio" name="reportContributionType" value="all" checked onchange="filterContributionReport()"> ሁሉም</label>
+                            <label><input type="radio" name="reportContributionType" value="regular" onchange="filterContributionReport()"> መደበኛ</label>
+                            <label><input type="radio" name="reportContributionType" value="special" onchange="filterContributionReport()"> ልዩ</label>
+                        </div>
+                        <div class="admin-filter">
+                            <span>አባል ምረጥ:</span>
+                            <select id="reportMemberSelect" onchange="filterContributionReport()">
+                                <option value="all">ሁሉም አባላት</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+                        <input type="date" id="reportStartDate"> - <input type="date" id="reportEndDate">
+                        <button class="btn-sm" onclick="filterContributionReport()">አጣራ</button>
+                        <button class="btn-sm btn-success" onclick="exportContributionReportExcel()">Excel</button>
+                        <button class="btn-sm" onclick="exportContributionReportPDF()">PDF</button>
+                        <button class="btn-sm btn-warning" onclick="printContributionReport()"><i class="fas fa-print"></i> አትም</button>
+                    </div>
+                    <div id="reportResultsContainer" style="margin-top:15px; overflow-x:auto;"></div>
+                </div>
+            </div>
+            <div id="adminMemberListWrapper" class="card" style="display:none;">
+                <div class="collapsible-header" onclick="toggleMemberList()">
+                    <h3>የአባላት ዝርዝር</h3>
+                    <i id="memberListIcon" class="fas fa-chevron-down"></i>
+                </div>
+                <div id="memberListContent" class="collapsible-content">
+                    <div class="admin-filter">
+                        <span>በማህበር አይነት አጣራ:</span>
+                        <label><input type="radio" name="memberListFilter" value="all" checked onchange="filterMemberDisplayList()"> ሁሉም</label>
+                        <label><input type="radio" name="memberListFilter" value="Wazema" onchange="filterMemberDisplayList()"> ዋዜሜ</label>
+                        <label><input type="radio" name="memberListFilter" value="Planet" onchange="filterMemberDisplayList()"> ፕላኔት</label>
+                    </div>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="memberSearchInput" placeholder="በስም፣ በስልክ ወይም በማህበር ፈልግ..." onkeyup="handleMemberSearchDebounced()" style="flex:1;">
+                    </div>
+                    <div class="member-list-box" id="memberListContainer"></div>
+                    <button class="btn-sm btn-success" onclick="exportSelectedMemberToExcel()" style="margin-top:10px;"><i class="fas fa-file-excel"></i> የተመረጠውን አባል ወደ Excel ላክ</button>
+                    <button class="btn-sm btn-warning" onclick="printSelectedMemberOnly()" style="margin-top:10px;"><i class="fas fa-print"></i> የተመረጠውን አባል ብቻ አትም</button>
+                </div>
+            </div>
+            <div id="adminMemberMgmt" class="card oval-card" style="display:none;">
+                <div class="collapsible-header" onclick="toggleMemberMgmt()">
+                    <h3><i class="fas fa-users-gear"></i> የማህበሩ አባላት መመዝገቢያ</h3>
+                    <i id="mgmtIcon" class="fas fa-chevron-down"></i>
+                </div>
+                <div id="memberMgmtContent" class="collapsible-content">
+                    <div class="admin-filter">
+                        <label><input type="radio" name="newMemberType" value="Wazema" checked> ዋዜሜ</label>
+                        <label><input type="radio" name="newMemberType" value="Planet"> ፕላኔት</label>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px;">
+                        <input type="text" id="newMemberName" placeholder="ሙሉ ስም (ከአያት ጋር)">
+                        <input type="text" id="newMemberPhone" placeholder="ስልክ ቁጥር">
+                        <input type="text" id="newMemberPhone2" placeholder="ተጨማሪ ስልክ">
+                        <input type="number" id="newMemberShares" placeholder="አክሲዮን" value="1">
+                        <input type="text" id="newMemberAddress" placeholder="አድራሻ">
+                        <input type="text" id="newMemberNickname" placeholder="መጠሪያ ስም">
+                        <select id="newMemberGender"><option>ወንድ</option><option>ሴት</option></select>
+                        <button class="btn-sm btn-success" onclick="registerMember()"><i class="fas fa-user-plus"></i> አባል ይመዝገቡ</button>
+                        <button class="btn-sm btn-warning" onclick="printMemberRegistrationList()"><i class="fas fa-print"></i> ዝርዝሩን አትም</button>
+                    </div>
+                    <div style="margin-top:15px; overflow-x:auto;">
+                        <table class="data-table" id="membersTable">
+                            <thead><tr><th>#</th><th>አይዲ</th><th>ስም</th><th>ስልክ</th><th>አክሲዮን</th><th>ዓይነት</th><th>መዋጮ</th><th>ድርጊት</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <div>የዋዜማ እና ፕላኔት አፓርትመንት ሀብት የሆነው የኮክ ትሬዲንግ ሃላፊነቱ የተወሰነ የግል ማህበር</div>
+        <div>ኮክ ትሬዲንግ የግል ማህበር | ፖስታ ሳጥን: 897 | ስልክ: 0583203839</div>
+        <div>መብቱ በህግ የተጠበቀ ነው</div>
+    </div>
+</div>
+
+<script>
+    // Firebase config
+    const firebaseConfig = { apiKey: "AIzaSyAKyR0bqOS0sDzYQI-0lNVs47adqQXO-GQ", authDomain: "town-apartment.firebaseapp.com", databaseURL: "https://town-apartment-default-rtdb.europe-west1.firebasedatabase.app", projectId: "town-apartment", storageBucket: "town-apartment.firebasestorage.app", messagingSenderId: "68597638574", appId: "1:68597638574:android:bef7bc259d66cf0f6c143f" };
+    let database, membersList = [], contributions = {}, announcements = [], currentUser = { role: "admin", memberId: null };
+    let adminMemberFilter = "all";
+    let selectedMemberForPrint = null;
+    let searchDebounceTimeout = null;
+    
+    // Initialize Firebase with persistence
+    try {
+        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        firebase.database().goOnline();
+        firebase.database().ref(".info/connected").on("value", (snap) => {
+            if(snap.val() === true) console.log("Firebase connected");
+            else console.log("Firebase disconnected - using cached data");
+        });
+    } catch(e) { console.error(e); }
+    
+    // Construction Data
+    let materials = { iron: [], nail: [], cement: [], gravel: [], ash: [], others: [] };
+    const materialTypes = ["iron","nail","cement","gravel","ash","others"];
+    const typeLabels = { iron:"ብረት", nail:"ሚስማር", cement:"ሲሚንቶ", gravel:"ጠጠር", ash:"አሽዋ", others:"ሌሎች" };
+    const unitLabels = { iron:"ቤርጋ", nail:"ኪሎግራም", cement:"ኩንታል", gravel:"ሜትር ኩብ", ash:"ሜትር ኩብ", others:"" };
+    
+    // Auto-increment receipt number
+    function getNextReceiptNumber() {
+        let maxNum = 0;
+        for(let cat of materialTypes) {
+            for(let item of (materials[cat] || [])) {
+                let receipt = item.receiptNo || '';
+                let match = receipt.match(/INV-(\d+)/);
+                if(match) {
+                    let num = parseInt(match[1]);
+                    if(num > maxNum) maxNum = num;
+                }
+            }
+        }
+        let nextNum = maxNum + 1;
+        return `INV-${nextNum.toString().padStart(3, '0')}`;
+    }
+    
+    function formatDecimal(num) {
+        if(isNaN(num)) return "0.00";
+        return parseFloat(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function generateRandomDigits() { return Math.floor(1000 + Math.random() * 9000).toString(); }
+    function generateId(type) { return (type === 'Wazema' ? 'W' : 'P') + '-' + generateRandomDigits(); }
+    function isDuplicateMember(name, type) { return membersList.some(m => m.name.toLowerCase() === name.toLowerCase() && m.membershipType === type); }
+    
+    // ========== CONSTRUCTION FUNCTIONS (lazy load) ==========
+    let constructionLoaded = false;
+    function ensureConstructionLoaded() {
+        if(!constructionLoaded) {
+            renderConstructionSummary();
+            renderMaterialNav();
+            constructionLoaded = true;
+        }
+    }
+    
+    function calculateTotalCost() {
+        let total = 0;
+        for(let cat of materialTypes) {
+            if(materials[cat]) {
+                for(let item of materials[cat]) {
+                    let itemTotal = parseFloat(item.total) || 0;
+                    total += itemTotal;
+                }
+            }
+        }
+        return total;
+    }
+    
+    function renderConstructionSummary() {
+        let totalCost = calculateTotalCost();
+        let totalDisplay = document.getElementById('totalConstructionCost');
+        if(totalDisplay) totalDisplay.innerText = formatDecimal(totalCost);
+        let summaryHTML = '';
+        for(let cat of materialTypes) {
+            let items = materials[cat] || [];
+            let totalMoney = 0;
+            let totalQuantity = 0;
+            let targetUnit = unitLabels[cat];
+            for(let item of items) {
+                totalMoney += parseFloat(item.total) || 0;
+                if(targetUnit && item.unit === targetUnit) totalQuantity += parseFloat(item.quantity) || 0;
+            }
+            summaryHTML += `<div class="chip-cat" onclick="showMaterialDetail('${cat}')">
+                <strong>${typeLabels[cat]}</strong><br>${formatDecimal(totalMoney)} ብር
+                ${targetUnit && totalQuantity > 0 ? `<br><small>ጠቅላላ ${targetUnit}: ${formatDecimal(totalQuantity)}</small>` : ''}
+            </div>`;
+        }
+        document.getElementById('materialSummaryChips').innerHTML = summaryHTML;
+    }
+    
+    function showMaterialDetail(cat) {
+        let data = materials[cat] || [];
+        if(data.length === 0) {
+            document.getElementById('specStatsContainer').innerHTML = `<p>ለ${typeLabels[cat]} ምንም የተገዛ እቃ የለም</p>`;
+        } else {
+            let html = `<div class="detail-table-wrapper"><table class="data-table"><thead><th>ተ.ቁጥር</th><th>ቀን</th><th>ዓይነት</th><th>ብዛት</th><th>ክፍል</th><th>ዋጋ/አንድ</th><th>ጠቅላላ</th><th>አቅራቢ</th></thead><tbody>`;
+            data.forEach(r => {
+                html += `<tr>
+                    <td>${r.receiptNo || '-'}</td>
+                    <td>${r.date}</td>
+                    <td>${r.type}</td>
+                    <td>${formatDecimal(r.quantity)}</td>
+                    <td>${r.unit}</td>
+                    <td>${formatDecimal(r.pricePerUnit)}</td>
+                    <td>${formatDecimal(r.total)} ብር</td>
+                    <td>${r.supplier || '-'}</td>
+                </tr>`;
+            });
+            html += `</tbody><tr></div><div class="summary-stats">ድምር: ${formatDecimal(data.reduce((s,r)=>s+r.total,0))} ብር</div>`;
+            document.getElementById('specStatsContainer').innerHTML = html;
+        }
+        document.getElementById('detailedReportPanel').style.display = 'block';
+    }
+    
+    function showMaterialTable(cat) {
+        let data = materials[cat] || [];
+        let html = `<div class="detail-table-wrapper"><table class="data-table"><thead><th>ተ.ቁጥር</th><th>ቀን</th><th>ዓይነት</th><th>ብዛት</th><th>ክፍል</th><th>ዋጋ/አንድ</th><th>ጠቅላላ</th><th>አቅራቢ</th><th>ድርጊት</th></thead><tbody>`;
+        data.forEach((r, i) => {
+            html += `<tr>
+                <td><input type="text" value="${r.receiptNo || ''}" onchange="updateMat('${cat}',${i},'receiptNo',this.value)" ${currentUser.role!='admin'?'disabled':''}></td>
+                <td><input type="date" value="${r.date}" onchange="updateMat('${cat}',${i},'date',this.value)" ${currentUser.role!='admin'?'disabled':''}></td>
+                <td><input type="text" value="${r.type}" onchange="updateMat('${cat}',${i},'type',this.value)" ${currentUser.role!='admin'?'disabled':''}></td>
+                <td><input type="number" step="0.01" value="${r.quantity}" onchange="updateMat('${cat}',${i},'quantity',this.value)" style="width:80px;" ${currentUser.role!='admin'?'disabled':''}></td>
+                <td><select onchange="updateMat('${cat}',${i},'unit',this.value)" ${currentUser.role!='admin'?'disabled':''}>${['ቁጥር','ቤርጋ','ኩንታል','ሜትር ኩብ','ኪሎግራም','ሊትር','ሜትር'].map(u => `<option ${r.unit==u?'selected':''}>${u}</option>`).join('')}</select></td>
+                <td><input type="number" step="0.01" value="${r.pricePerUnit}" onchange="updateMat('${cat}',${i},'pricePerUnit',this.value)" style="width:80px;" ${currentUser.role!='admin'?'disabled':''}></td>
+                <td><input type="text" value="${formatDecimal(r.total)}" readonly style="background:#eee; width:100px;"></td>
+                <td><input type="text" value="${r.supplier||''}" onchange="updateMat('${cat}',${i},'supplier',this.value)" ${currentUser.role!='admin'?'disabled':''}></td>
+                <td>${currentUser.role==='admin'?`<button class="btn-sm btn-danger" onclick="delMatRow('${cat}',${i})">ሰርዝ</button>`:'-'}</td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+        document.getElementById('materialSectionContainer').innerHTML = html;
+    }
+    
+    function updateMat(cat, idx, field, val) {
+        if(currentUser.role != 'admin') return;
+        materials[cat][idx][field] = val;
+        let q = parseFloat(materials[cat][idx].quantity) || 0;
+        let p = parseFloat(materials[cat][idx].pricePerUnit) || 0;
+        materials[cat][idx].total = q * p;
+        saveConstruction();
+        renderConstructionSummary();
+        showMaterialTable(cat);
+        filterPurchaseReport();
+    }
+    
+    function addMatRow(cat) {
+        if(currentUser.role!='admin') return;
+        materials[cat].push({ receiptNo: getNextReceiptNumber(), date: new Date().toISOString().slice(0,10), type: 'አይነት', quantity: 0, unit: 'ቁጥር', pricePerUnit: 0, total: 0, supplier: '' });
+        saveConstruction(); showMaterialTable(cat); renderConstructionSummary(); filterPurchaseReport();
+    }
+    
+    function delMatRow(cat, idx) {
+        if(currentUser.role!='admin') return;
+        if(confirm("እርግጠኛ ነዎት?")) { materials[cat].splice(idx,1); saveConstruction(); showMaterialTable(cat); renderConstructionSummary(); filterPurchaseReport(); }
+    }
+    
+    function addNewPurchase() {
+        if(currentUser.role!='admin') return;
+        let receipt = document.getElementById('newReceiptNo').value.trim();
+        let date = document.getElementById('newPurchaseDate').value;
+        let cat = document.getElementById('newMaterialCat').value;
+        let subType = document.getElementById('newMaterialSubType').value;
+        let unit = document.getElementById('newUnit').value;
+        let qty = parseFloat(document.getElementById('newQuantity').value);
+        let price = parseFloat(document.getElementById('newPricePerUnit').value);
+        let supplier = document.getElementById('newSupplier').value.trim();
+        if(!date || isNaN(qty) || isNaN(price)) { alert("ቀን፣ ብዛት እና ዋጋ ያስፈልጋሉ"); return; }
+        if(qty <= 0 || price <= 0) { alert("ብዛት እና ዋጋ ከዜሮ በላይ መሆን አለባቸው"); return; }
+        let total = qty * price;
+        let finalReceipt = receipt || getNextReceiptNumber();
+        let newItem = { receiptNo: finalReceipt, date: date, type: subType, quantity: qty, unit: unit, pricePerUnit: price, total: total, supplier: supplier || '-' };
+        materials[cat].push(newItem);
+        saveConstruction(); renderConstructionSummary(); showMaterialTable(cat); filterPurchaseReport();
+        document.getElementById('newReceiptNo').value = getNextReceiptNumber();
+        document.getElementById('newQuantity').value = '';
+        document.getElementById('newPricePerUnit').value = '';
+        document.getElementById('newSupplier').value = '';
+        alert("ግዥ ተመዝግቧል");
+    }
+    
+    function renderMaterialNav() {
+        document.getElementById('materialNav').innerHTML = materialTypes.map(k => `<button class="material-btn" onclick="showMaterialTable('${k}')">${typeLabels[k]}</button>`).join('');
+        showMaterialTable('iron');
+    }
+    
+    // Purchase Report
+    function togglePurchaseReport() {
+        let content = document.getElementById('purchaseReportContent');
+        let icon = document.getElementById('purchaseReportIcon');
+        content.classList.toggle('show');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        if(content.classList.contains('show')) filterPurchaseReport();
+    }
+    
+    function filterPurchaseReport() {
+        let startDate = document.getElementById('purchaseReportStart').value;
+        let endDate = document.getElementById('purchaseReportEnd').value;
+        let category = document.getElementById('purchaseReportCategory').value;
+        let allPurchases = [];
+        let categoriesToShow = category === 'all' ? materialTypes : [category];
+        for(let cat of categoriesToShow) {
+            for(let item of (materials[cat] || [])) {
+                if(startDate && item.date < startDate) continue;
+                if(endDate && item.date > endDate) continue;
+                allPurchases.push({ category: typeLabels[cat], receiptNo: item.receiptNo || '-', date: item.date, type: item.type, quantity: item.quantity, unit: item.unit, pricePerUnit: item.pricePerUnit, total: item.total, supplier: item.supplier || '-' });
+            }
+        }
+        allPurchases.sort((a,b) => (a.date || '').localeCompare(b.date || ''));
+        let html = `<table class="data-table"><thead><th>ተ.ቁጥር</th><th>ቀን</th><th>ምድብ</th><th>ዓይነት</th><th>ብዛት</th><th>ክፍል</th><th>ዋጋ/አንድ</th><th>ጠቅላላ (ብር)</th><th>አቅራቢ</th></thead><tbody>`;
+        let grandTotal = 0;
+        allPurchases.forEach(p => { html += `<td><td>${p.receiptNo}</td><td>${p.date}</td><td>${p.category}</td><td>${p.type}</td><td>${formatDecimal(p.quantity)}</td><td>${p.unit}</td><td>${formatDecimal(p.pricePerUnit)}</td><td><strong>${formatDecimal(p.total)}</strong></td><td>${p.supplier}</td></tr>`; grandTotal += p.total; });
+        html += `<tr style="background:#e8f5e9; font-weight:bold;"><td colspan="7" style="text-align:right;">አጠቃላይ ድምር (ብር):</td><td colspan="2">${formatDecimal(grandTotal)}</td></tr>`;
+        html += `</tbody></table>`;
+        document.getElementById('purchaseReportResults').innerHTML = allPurchases.length ? html : "ምንም ግዥ አልተገኘም";
+    }
+    
+    function exportPurchaseReportExcel() {
+        let startDate = document.getElementById('purchaseReportStart').value;
+        let endDate = document.getElementById('purchaseReportEnd').value;
+        let category = document.getElementById('purchaseReportCategory').value;
+        let allPurchases = [];
+        let categoriesToShow = category === 'all' ? materialTypes : [category];
+        for(let cat of categoriesToShow) {
+            for(let item of (materials[cat] || [])) {
+                if(startDate && item.date < startDate) continue;
+                if(endDate && item.date > endDate) continue;
+                allPurchases.push({ category: typeLabels[cat], receiptNo: item.receiptNo || '-', date: item.date, type: item.type, quantity: item.quantity, unit: item.unit, pricePerUnit: item.pricePerUnit, total: item.total, supplier: item.supplier || '-' });
+            }
+        }
+        allPurchases.sort((a,b) => (a.date || '').localeCompare(b.date || ''));
+        let sheetData = [["ተ.ቁጥር","ቀን","ምድብ","ዓይነት","ብዛት","ክፍል","ዋጋ/አንድ","ጠቅላላ (ብር)","አቅራቢ"]];
+        let grandTotal = 0;
+        allPurchases.forEach(p => { sheetData.push([p.receiptNo, p.date, p.category, p.type, p.quantity, p.unit, p.pricePerUnit, p.total, p.supplier]); grandTotal += p.total; });
+        sheetData.push(["","","","","","","አጠቃላይ ድምር", grandTotal, ""]);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheetData), "PurchaseReport");
+        XLSX.writeFile(wb, `Purchase_Report_${startDate || 'start'}_to_${endDate || 'end'}.xlsx`);
+    }
+    
+    function saveConstruction() { if(database) database.ref('/construction').set(materials); }
+    
+    // ========== MEMBER FUNCTIONS ==========
+    function registerMember() {
+        if(currentUser.role!='admin') return;
+        let name = document.getElementById('newMemberName').value.trim();
+        let type = document.querySelector('input[name="newMemberType"]:checked').value;
+        if(!name) { alert("ሙሉ ስም ያስገቡ"); return; }
+        if(isDuplicateMember(name, type)) { alert("ይህ አባል ቀድሞ ተመዝግቧል! ተደጋጋሚ ስም አይፈቀድም"); return; }
+        let newId = generateId(type);
+        while(membersList.some(m => m.id === newId)) newId = generateId(type);
+        let newMember = {
+            id: newId, name: name, phone: document.getElementById('newMemberPhone').value.trim(),
+            phone2: document.getElementById('newMemberPhone2').value.trim(),
+            shares: Number(document.getElementById('newMemberShares').value) || 1,
+            address: document.getElementById('newMemberAddress').value.trim() || '-',
+            nickname: document.getElementById('newMemberNickname').value.trim() || '-',
+            gender: document.getElementById('newMemberGender').value, membershipType: type
+        };
+        membersList.push(newMember);
+        saveMembers();
+        renderMembersTable();
+        updateMemberSelect();
+        alert(`አባል በትክክል ተመዝግቧል! መለያ ኮድ: ${newId}`);
+        document.getElementById('newMemberName').value = ''; document.getElementById('newMemberPhone').value = ''; document.getElementById('newMemberPhone2').value = ''; document.getElementById('newMemberAddress').value = ''; document.getElementById('newMemberNickname').value = '';
+    }
+    
+    function addContribution() {
+        if(currentUser.role!='admin') return;
+        let mid = document.getElementById('contributionMemberSelect').value;
+        let month = document.getElementById('contributionMonth').value;
+        let amount = Number(document.getElementById('contributionAmount').value);
+        let bank = document.getElementById('bankCodeInput').value;
+        let type = document.querySelector('input[name="contributionType"]:checked').value;
+        if(!mid || !month || !amount) { alert("ሁሉንም መረጃ ይሙሉ"); return; }
+        if(!contributions[mid]) contributions[mid] = [];
+        if(type === 'regular' && contributions[mid].some(c => c.month === month && c.type === 'regular')) { alert("ይህ ወር መደበኛ መዋጮ ተመዝግቧል"); return; }
+        let receipt = `${month.replace('-','')}-${mid.slice(-3)}-${type === 'special' ? 'S' : 'R'}`;
+        contributions[mid].push({ receiptNo: receipt, date: new Date().toISOString().slice(0,10), amount, month, bankCode: bank || '-', type });
+        saveContributions();
+        alert("መዋጮ ተመዝግቧል");
+        document.getElementById('contributionAmount').value = '';
+        renderMembersTable();
+        updateStats();
+        filterContributionReport();
+    }
+    
+    // Enhanced filterContributionReport that can optionally return data instead of rendering
+    function filterContributionReport(returnDataOnly = false) {
+        let start = document.getElementById('reportStartDate').value;
+        let end = document.getElementById('reportEndDate').value;
+        let memberFilter = document.querySelector('input[name="reportMemberType"]:checked')?.value || 'all';
+        let contribFilter = document.querySelector('input[name="reportContributionType"]:checked')?.value || 'all';
+        let selectedMemberId = document.getElementById('reportMemberSelect')?.value || 'all';
+        
+        let allContribs = [];
+        for(let mid in contributions) {
+            let member = membersList.find(m => m.id === mid);
+            if(!member) continue;
+            if(currentUser.role === 'member' && mid !== currentUser.memberId) continue;
+            if(memberFilter !== 'all' && member.membershipType !== memberFilter) continue;
+            if(selectedMemberId !== 'all' && mid !== selectedMemberId) continue;
+            contributions[mid].forEach(c => {
+                if(contribFilter !== 'all' && c.type !== contribFilter) return;
+                if((!start || c.date >= start) && (!end || c.date <= end)) {
+                    allContribs.push({ ...c, memberName: member.name, memberType: member.membershipType, memberGender: member.gender, memberAddress: member.address, memberShares: member.shares, memberId: member.id });
+                }
+            });
+        }
+        window.currentContributionReportData = allContribs;
+        if(returnDataOnly) return allContribs;
+        
+        let html = `<table class="data-table"><thead><th>ደረሰኝ</th><th>ወር</th><th>ማህበር</th><th>ስም</th><th>ጾታ</th><th>አድራሻ</th><th>ክፍያ ዓይነት</th><th>መጠን</th></thead><tbody>`;
+        allContribs.forEach(c => { html += `<tr><td>${c.receiptNo}</td><td>${c.month}</td><td>${c.memberType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት'}</td><td>${c.memberName}</td><td>${c.memberGender}</td><td>${c.memberAddress}</td><td>${c.type === 'regular' ? 'መደበኛ' : 'ልዩ'}</td><td>${c.amount.toLocaleString()} ብር</td></td>`; });
+        html += `</tbody></table>`;
+        document.getElementById('reportResultsContainer').innerHTML = allContribs.length ? html : "ምንም ውጤት የለም";
+    }
+    
+    // Optimized printContributionReport using map and join
+    function printContributionReport() {
+        let data = filterContributionReport(true);
+        if (!data || data.length === 0) {
+            alert("የሚታተም መረጃ የለም");
+            return;
+        }
+        let rowsHtml = data.map(c => `
+            <tr>
+                <td style="border:1px solid #000; padding:8px;">${c.memberName}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.date}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.month}</td>
+                <td style="border:1px solid #000; padding:8px; text-align:right;">${c.amount.toLocaleString()}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.memberType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት'}</td>
+            </tr>
+        `).join('');
+        let fullHtml = `<div style="padding:20px; font-family: 'Noto Sans Ethiopic', sans-serif;">
+            <h2 style="text-align:center; margin-bottom:5px;">ዋዜማ እና ፕላኔት አፓርትመንት</h2>
+            <h3 style="text-align:center; margin-top:0;">የመዋጮ ዝርዝር ሪፖርት</h3>
+            <p style="text-align:center; font-size:12px;">ኮክ ትሬዲንግ ሃላፊነቱ የተወሰነ የግል ማህበር | ፖስታ ሳጥን: 897 | ስልክ: 0583203839</p>
+            <hr>
+            <table class="print-table" style="width:100%; border-collapse:collapse; margin-top:15px;">
+                <thead>
+                    <tr style="background:#f2f2f2;">
+                        <th style="border:1px solid #000; padding:8px;">የባለአክሲዮኑ ስም</th>
+                        <th style="border:1px solid #000; padding:8px;">ክፍያ የተፈጸመበት ቀን</th>
+                        <th style="border:1px solid #000; padding:8px;">የክፍያ ወር</th>
+                        <th style="border:1px solid #000; padding:8px;">መጠን (ብር)</th>
+                        <th style="border:1px solid #000; padding:8px;">ማህበር</th>
+                    </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+            <div style="margin-top:30px; text-align:center; font-size:11px; font-style:italic;">
+                መረጃው የወጣበት ቀን፡ ${new Date().toLocaleString('en-GB')}
+            </div>
+        </div>`;
+        doPrint(fullHtml);
+    }
+    
+    function printMemberRegistrationList() {
+        let filtered = membersList;
+        if(filtered.length === 0) { alert("ምንም አባላት የሉም"); return; }
+        let rowsHtml = filtered.map(m => {
+            let paymentDates = (contributions[m.id] || []).map(c => c.date).join(', ');
+            let totalContrib = (contributions[m.id] || []).reduce((s,c) => s + c.amount, 0);
+            return `<tr>
+                <td style="border:1px solid #000; padding:8px;">${m.name}</td>
+                <td style="border:1px solid #000; padding:8px;">${paymentDates || '-'}</td>
+                <td style="border:1px solid #000; padding:8px;">${m.gender}</td>
+                <td style="border:1px solid #000; padding:8px;">${m.shares}</td>
+                <td style="border:1px solid #000; padding:8px;">${m.address}</td>
+                <td style="border:1px solid #000; padding:8px;">${m.phone}</td>
+                <td style="border:1px solid #000; padding:8px; text-align:right;">${totalContrib.toLocaleString()}</td>
+                <td style="border:1px solid #000; padding:8px;">${m.membershipType === 'Wazema' ? 'Wazema' : 'Planet'}</td>
+            </tr>`;
+        }).join('');
+        let fullHtml = `<div style="padding:20px;">
+            <h2 style="text-align:center;">Wazema and Planet Apartments</h2>
+            <h3 style="text-align:center;">Member Registration List</h3>
+            <p style="text-align:center;">Kok Trading Private Limited Company | P.O.Box: 897 | Tel: 0583203839</p>
+            <hr>
+            <table class="print-table">
+                <thead><tr><th>Shareholder Name</th><th>Payment Dates</th><th>Gender</th><th>Shares</th><th>Address</th><th>Phone</th><th>Total Contribution (Birr)</th><th>Association</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+            <div style="margin-top:40px; border-top:1px solid #000; padding-top:10px; text-align:center; font-style:italic; font-size:11px;">
+                Wazema & Planet Apartment Shareholders Association <br>
+                Address: Addis Ababa, Ethiopia | Generated on: ${new Date().toLocaleString('en-GB')}
+            </div>
+        </div>`;
+        doPrint(fullHtml);
+    }
+    
+    function doPrint(content) {
+        let area = document.getElementById('printArea');
+        area.innerHTML = content;
+        area.style.display = 'block';
+        window.print();
+        area.style.display = 'none';
+    }
+    
+    function exportContributionReportExcel() {
+        let start = document.getElementById('reportStartDate').value, end = document.getElementById('reportEndDate').value;
+        let memberFilter = document.querySelector('input[name="reportMemberType"]:checked')?.value || 'all';
+        let contribFilter = document.querySelector('input[name="reportContributionType"]:checked')?.value || 'all';
+        let selectedMemberId = document.getElementById('reportMemberSelect')?.value || 'all';
+        let data = [["ደረሰኝ","ወር","ማህበር","ስም","ጾታ","አድራሻ","ክፍያ ዓይነት","መጠን"]];
+        for(let mid in contributions) {
+            let member = membersList.find(m => m.id === mid);
+            if(!member) continue;
+            if(currentUser.role === 'member' && mid !== currentUser.memberId) continue;
+            if(memberFilter !== 'all' && member.membershipType !== memberFilter) continue;
+            if(selectedMemberId !== 'all' && mid !== selectedMemberId) continue;
+            contributions[mid].forEach(c => {
+                if(contribFilter !== 'all' && c.type !== contribFilter) return;
+                if((!start || c.date >= start) && (!end || c.date <= end))
+                    data.push([c.receiptNo, c.month, member.membershipType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት', member.name, member.gender, member.address, c.type === 'regular' ? 'መደበኛ' : 'ልዩ', `${c.amount} ብር`]);
+            });
+        }
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "Report");
+        XLSX.writeFile(wb, `Contribution_Report.xlsx`);
+    }
+    
+    function exportContributionReportPDF() {
+        let { jsPDF } = window.jspdf;
+        let pdf = new jsPDF();
+        pdf.text("የመዋጮ ሪፖርት", 105, 20, { align: 'center' });
+        pdf.text(`ቀን: ${new Date().toLocaleDateString()}`, 105, 30, { align: 'center' });
+        let y = 45;
+        pdf.setFontSize(9);
+        let start = document.getElementById('reportStartDate').value, end = document.getElementById('reportEndDate').value;
+        let memberFilter = document.querySelector('input[name="reportMemberType"]:checked')?.value || 'all';
+        let contribFilter = document.querySelector('input[name="reportContributionType"]:checked')?.value || 'all';
+        let selectedMemberId = document.getElementById('reportMemberSelect')?.value || 'all';
+        for(let mid in contributions) {
+            let member = membersList.find(m => m.id === mid);
+            if(!member) continue;
+            if(currentUser.role === 'member' && mid !== currentUser.memberId) continue;
+            if(memberFilter !== 'all' && member.membershipType !== memberFilter) continue;
+            if(selectedMemberId !== 'all' && mid !== selectedMemberId) continue;
+            contributions[mid].forEach(c => {
+                if(contribFilter !== 'all' && c.type !== contribFilter) return;
+                if((!start || c.date >= start) && (!end || c.date <= end)) {
+                    if(y > 270) { pdf.addPage(); y = 20; }
+                    pdf.text(`${c.receiptNo}`, 15, y);
+                    pdf.text(`${c.month}`, 45, y);
+                    pdf.text(`${member.membershipType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት'}`, 70, y);
+                    pdf.text(`${member.name.substring(0,12)}`, 95, y);
+                    pdf.text(`${c.amount}`, 140, y);
+                    y += 7;
+                }
+            });
+        }
+        pdf.save("Contribution_Report.pdf");
+    }
+    
+    function selectMember(id) {
+        if(currentUser.role !== 'admin') return;
+        selectedMemberForPrint = membersList.find(m => m.id === id);
+        document.querySelectorAll('.member-list-item').forEach(el => el.classList.remove('selected'));
+        let items = document.querySelectorAll('.member-list-item');
+        for(let item of items) if(item.textContent.includes(id)) item.classList.add('selected');
+        alert(`አባል ${id} ተመርጧል`);
+    }
+    
+    // Optimized printSelectedMemberOnly
+    function printSelectedMemberOnly() {
+        if (currentUser.role !== 'admin') return;
+        if (!selectedMemberForPrint) {
+            alert("እባክዎ መጀመሪያ አባል ይምረጡ");
+            return;
+        }
+        let m = selectedMemberForPrint;
+        let memberContribs = contributions[m.id] || [];
+        let regularTotal = memberContribs.filter(c => c.type === 'regular').reduce((s, c) => s + c.amount, 0);
+        let specialTotal = memberContribs.filter(c => c.type === 'special').reduce((s, c) => s + c.amount, 0);
+    
+        let rowsHtml = memberContribs.sort((a,b) => a.date.localeCompare(b.date)).map((c, idx) => `
+            <tr>
+                <td style="border:1px solid #000; padding:8px; text-align:center;">${idx + 1}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.date}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.month}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.type === 'regular' ? 'መደበኛ' : 'ልዩ'}</td>
+                <td style="border:1px solid #000; padding:8px;">${c.bankCode || '-'}</td>
+                <td style="border:1px solid #000; padding:8px; text-align:right;">${c.amount.toLocaleString()}</td>
+            </tr>
+        `).join('');
+    
+        let fullHtml = `<div style="padding:20px; font-family: 'Noto Sans Ethiopic', sans-serif;">
+            <h2 style="text-align:center;">ዋዜማ እና ፕላኔት አፓርትመንት</h2>
+            <h3 style="text-align:center;">የባለአክሲዮን መረጃ እና የክፍያ ታሪክ</h3>
+            <div style="margin-bottom:20px; padding:10px; border:1px solid #ccc; border-radius:10px;">
+                <p><strong>የባለአክሲዮኑ ስም፡</strong> ${m.name} | <strong>መለያ ኮድ፡</strong> ${m.id}</p>
+                <p><strong>ማህበር፡</strong> ${m.membershipType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት'} | <strong>አክሲዮን ብዛት፡</strong> ${m.shares}</p>
+                <p><strong>ስልክ፡</strong> ${m.phone} | <strong>አድራሻ፡</strong> ${m.address}</p>
+            </div>
+            <h4>የክፍያ ዝርዝር</h4>
+            <table class="print-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="background:#f2f2f2;">
+                        <th style="border:1px solid #000; padding:8px;">ተ.ቁ</th>
+                        <th style="border:1px solid #000; padding:8px;">ቀን</th>
+                        <th style="border:1px solid #000; padding:8px;">ለወር</th>
+                        <th style="border:1px solid #000; padding:8px;">የክፍያ ዓይነት</th>
+                        <th style="border:1px solid #000; padding:8px;">ደረሰኝ/ባንክ</th>
+                        <th style="border:1px solid #000; padding:8px;">መጠን (ብር)</th>
+                    </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+                <tfoot>
+                    <tr style="font-weight:bold; background:#eee;">
+                        <td colspan="5" style="border:1px solid #000; padding:8px; text-align:right;">ጠቅላላ ድምር፡</td>
+                        <td style="border:1px solid #000; padding:8px; text-align:right;">${(regularTotal + specialTotal).toLocaleString()} ብር</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div style="margin-top:20px;">
+                <p>መደበኛ መዋጮ፡ ${regularTotal.toLocaleString()} ብር | ልዩ መዋጮ፡ ${specialTotal.toLocaleString()} ብር</p>
+            </div>
+        </div>`;
+        doPrint(fullHtml);
+    }
+    
+    function exportSelectedMemberToExcel() {
+        if(currentUser.role !== 'admin') return;
+        if(!selectedMemberForPrint) { alert("እባክዎ አንድ አባል ይምረጡ"); return; }
+        let m = selectedMemberForPrint;
+        let regularTotal = (contributions[m.id] || []).filter(c => c.type === 'regular').reduce((s,c) => s + c.amount, 0);
+        let specialTotal = (contributions[m.id] || []).filter(c => c.type === 'special').reduce((s,c) => s + c.amount, 0);
+        let grandTotal = regularTotal + specialTotal;
+        let data = [["ID","Full Name","Gender","Phone","Address","Regular Total","Special Total","Grand Total"]];
+        data.push([m.id, m.name, m.gender, m.phone, m.address, regularTotal, specialTotal, grandTotal]);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "Member");
+        XLSX.writeFile(wb, `Member_${m.id}.xlsx`);
+    }
+    
+    // Debounced search handler
+    function handleMemberSearchDebounced() {
+        if (searchDebounceTimeout) clearTimeout(searchDebounceTimeout);
+        searchDebounceTimeout = setTimeout(() => {
+            const searchTerm = document.getElementById('memberSearchInput').value.toLowerCase();
+            let filter = document.querySelector('input[name="memberListFilter"]:checked').value;
+            let filtered = membersList.filter(m => filter === 'all' || m.membershipType === filter);
+            if (searchTerm) {
+                filtered = filtered.filter(m => m.name.toLowerCase().includes(searchTerm) || m.phone.includes(searchTerm) || (m.nickname && m.nickname.toLowerCase().includes(searchTerm)));
+            }
+            let container = document.getElementById('memberListContainer');
+            container.innerHTML = filtered.map(m => `<div class="member-list-item" onclick="selectMember('${m.id}')"><i class="fas fa-user"></i> ${m.id} - ${m.name}<br><small>${m.membershipType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት'} | ስልክ: ${m.phone} | መጠሪያ: ${m.nickname || '-'}</small></div>`).join('');
+        }, 300);
+    }
+    
+    function filterMemberDisplayList() {
+        handleMemberSearchDebounced();
+    }
+    
+    function renderMembersTable() {
+        let tbody = document.querySelector('#membersTable tbody');
+        tbody.innerHTML = membersList.map((m, i) => `<tr>
+            <td>${i+1}</td>
+            <td>${m.id}</td>
+            <td>${m.name}</td>
+            <td>${m.phone}</td>
+            <td>${m.shares}</td>
+            <td>${m.membershipType === 'Wazema' ? 'ዋዜሜ' : 'ፕላኔት'}</td>
+            <td>${(contributions[m.id] || []).reduce((s,c) => s + c.amount, 0).toLocaleString()} ብር</td>
+            <td><button class="btn-sm btn-danger" onclick="deleteMember('${m.id}')">ሰርዝ</button></td>
+        </tr>`).join('');
+        document.getElementById('totalMembersCount').innerText = membersList.length;
+        filterMemberDisplayList();
+        updateMemberSelect();
+        updateStats();
+        let reportSelect = document.getElementById('reportMemberSelect');
+        if(reportSelect) reportSelect.innerHTML = '<option value="all">ሁሉም አባላት</option>' + membersList.map(m => `<option value="${m.id}">${m.id} - ${m.name}</option>`).join('');
+    }
+    
+    function deleteMember(id) {
+        if(currentUser.role!='admin') return;
+        if(confirm("ማጥፋት እንደሚፈልጉ እርግጠኛ ነዎት?")) {
+            membersList = membersList.filter(m => m.id !== id);
+            delete contributions[id];
+            saveMembers(); saveContributions();
+            renderMembersTable();
+            if(selectedMemberForPrint && selectedMemberForPrint.id === id) selectedMemberForPrint = null;
+        }
+    }
+    
+    function updateMemberSelect() {
+        let sel = document.getElementById('contributionMemberSelect');
+        if(!sel) return;
+        let filtered = adminMemberFilter === 'all' ? membersList : membersList.filter(m => m.membershipType === adminMemberFilter);
+        sel.innerHTML = '<option value="">አባል ምረጥ</option>' + filtered.map(m => `<option value="${m.id}">${m.id} - ${m.name}</option>`).join('');
+    }
+    
+    function filterMembersByType(t) { adminMemberFilter = t; updateMemberSelect(); }
+    function updateStats() {
+        let totalMoney = 0, totalShares = 0;
+        for(let mid in contributions) contributions[mid].forEach(c => totalMoney += c.amount);
+        membersList.forEach(m => totalShares += m.shares);
+        document.getElementById('totalAllContrib').innerText = totalMoney.toLocaleString();
+        document.getElementById('totalSharesAll').innerText = totalShares;
+    }
+    
+    function saveMembers() { if(database) database.ref('/members').set({ list: membersList }); }
+    function saveContributions() { if(database) database.ref('/contributions').set(contributions); }
+    function saveAnnouncements() { if(database) database.ref('/announcements').set(announcements); }
+    
+    // Announcement Functions
+    function toggleAnnouncements() {
+        let content = document.getElementById('announcementsContent');
+        let icon = document.getElementById('announceIcon');
+        content.classList.toggle('show');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        if(content.classList.contains('show')) updateAnnounceUI();
+    }
+    
+    function addAnnouncement() {
+        if(currentUser.role!='admin') return;
+        let txt = document.getElementById('newAnnounceText').value.trim();
+        if(txt) { announcements.unshift({ content: txt, date: new Date().toISOString() }); saveAnnouncements(); updateAnnounceUI(); document.getElementById('newAnnounceText').value = ''; }
+    }
+    
+    function updateAnnounceUI() {
+        let container = document.getElementById('announcementList');
+        if(container) container.innerHTML = announcements.map((a,i) => `<div style="margin:5px 0; padding:5px; background:#2d3e4e; border-radius:20px;">${a.content} <button class="btn-sm btn-danger" onclick="deleteAnnounce(${i})">ሰርዝ</button></div>`).join('');
+        let latest = announcements[0];
+        let marquee = document.getElementById('movingAnnounce');
+        if(marquee) marquee.innerText = latest ? latest.content : "ምንም አዲስ ማስታወቂያ የለም";
+        let announceText = document.getElementById('announceText');
+        if(announceText) announceText.innerHTML = latest ? latest.content : "እንኳን ደህና መጡ!";
+    }
+    
+    function deleteAnnounce(i) { if(currentUser.role!='admin') return; announcements.splice(i,1); saveAnnouncements(); updateAnnounceUI(); }
+    
+    // Toggle Functions
+    function toggleNewPurchaseForm() {
+        let content = document.getElementById('newPurchaseForm');
+        let icon = document.getElementById('purchaseFormIcon');
+        content.classList.toggle('show');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        if(content.classList.contains('show')) document.getElementById('newReceiptNo').value = getNextReceiptNumber();
+    }
+    
+    function toggleContributionReport() {
+        let content = document.getElementById('contributionReportContent');
+        let icon = document.getElementById('reportIcon');
+        content.classList.toggle('show');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        if(content.classList.contains('show')) filterContributionReport();
+    }
+    
+    function toggleMemberList() {
+        let content = document.getElementById('memberListContent');
+        let icon = document.getElementById('memberListIcon');
+        content.classList.toggle('show');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+        if(content.classList.contains('show')) filterMemberDisplayList();
+    }
+    
+    function toggleMemberMgmt() {
+        let content = document.getElementById('memberMgmtContent');
+        let icon = document.getElementById('mgmtIcon');
+        content.classList.toggle('show');
+        icon.classList.toggle('fa-chevron-down');
+        icon.classList.toggle('fa-chevron-up');
+    }
+    
+    // Load data function for login
+    async function loadDataAndStartApp() {
+        const spinner = document.getElementById('loginSpinner');
+        spinner.style.display = 'block';
+        try {
+            const [membersSnap, contribSnap, constructSnap, announceSnap] = await Promise.all([
+                database.ref('/members').once('value'),
+                database.ref('/contributions').once('value'),
+                database.ref('/construction').once('value'),
+                database.ref('/announcements').once('value')
+            ]);
+            if(membersSnap.exists() && membersSnap.val().list) membersList = membersSnap.val().list;
+            if(contribSnap.exists()) contributions = contribSnap.val();
+            if(constructSnap.exists()) materials = constructSnap.val();
+            if(announceSnap.exists()) announcements = announceSnap.val();
+            
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            
+            renderMembersTable();
+            if(document.getElementById('constructionPane').classList.contains('active')) {
+                ensureConstructionLoaded();
+            }
+            updateAnnounceUI();
+            filterContributionReport();
+            filterPurchaseReport();
+            
+            let today = new Date();
+            let firstDay = new Date(today.getFullYear(), today.getMonth()-1, 1).toISOString().slice(0,10);
+            let lastDay = today.toISOString().slice(0,10);
+            document.getElementById('contributionMonth').value = today.toISOString().slice(0,7);
+            document.getElementById('reportStartDate').value = firstDay;
+            document.getElementById('reportEndDate').value = lastDay;
+            document.getElementById('purchaseReportStart').value = firstDay;
+            document.getElementById('purchaseReportEnd').value = lastDay;
+            
+            if(currentUser.role === 'admin') {
+                document.getElementById('userBadge').innerHTML = '<i class="fas fa-user-shield"></i> አድሚን';
+                document.getElementById('userBadge').className = 'badge-admin';
+                document.getElementById('adminStatsCard').style.display = 'block';
+                document.getElementById('adminContributionPanel').style.display = 'block';
+                document.getElementById('adminMemberMgmt').style.display = 'block';
+                document.getElementById('adminAnnounceWrapper').style.display = 'block';
+                document.getElementById('adminNewPurchaseWrapper').style.display = 'block';
+                document.getElementById('adminMemberListWrapper').style.display = 'block';
+                document.getElementById('adminReportFilters').style.display = 'block';
+                document.getElementById('memberPersonalPanel').style.display = 'none';
+                document.getElementById('memberStatsHeader').style.display = 'none';
+                ensureConstructionLoaded();
+            } else {
+                document.getElementById('userBadge').innerHTML = '<i class="fas fa-user"></i> አባል';
+                document.getElementById('userBadge').className = 'badge-member';
+                document.getElementById('adminStatsCard').style.display = 'none';
+                document.getElementById('adminContributionPanel').style.display = 'none';
+                document.getElementById('adminMemberMgmt').style.display = 'none';
+                document.getElementById('adminAnnounceWrapper').style.display = 'none';
+                document.getElementById('adminNewPurchaseWrapper').style.display = 'none';
+                document.getElementById('adminMemberListWrapper').style.display = 'none';
+                document.getElementById('adminReportFilters').style.display = 'none';
+                document.getElementById('memberPersonalPanel').style.display = 'flex';
+                let m = membersList.find(m => m.id === currentUser.memberId);
+                if(m) {
+                    document.getElementById('currentMemberName').innerText = m.name;
+                    document.getElementById('currentMemberId').innerText = m.id;
+                    document.getElementById('currentMemberGender').innerText = m.gender;
+                    document.getElementById('currentMemberShares').innerText = m.shares;
+                    document.getElementById('currentMemberPhone').innerText = m.phone;
+                    document.getElementById('currentMemberAddress').innerText = m.address;
+                    let regularTotal = (contributions[currentUser.memberId] || []).filter(c => c.type === 'regular').reduce((s,c) => s + c.amount, 0);
+                    let specialTotal = (contributions[currentUser.memberId] || []).filter(c => c.type === 'special').reduce((s,c) => s + c.amount, 0);
+                    let total = regularTotal + specialTotal;
+                    document.getElementById('memberRegularTotal').innerText = regularTotal.toLocaleString();
+                    document.getElementById('memberSpecialTotal').innerText = specialTotal.toLocaleString();
+                    document.getElementById('memberTotalContribution').innerText = total.toLocaleString();
+                    document.getElementById('memberReceiptCount').innerText = (contributions[currentUser.memberId] || []).length;
+                    updateMemberUIHeader();
+                }
+                ensureConstructionLoaded();
+            }
+            filterPurchaseReport();
+            filterContributionReport();
+            if(currentUser.role === 'admin') filterMemberDisplayList();
+        } catch (error) {
+            console.error("Data loading error:", error);
+            document.getElementById('loginErrorMsg').innerHTML = "መረጃዎችን ለመጫን ችግር ተፈጥሯል። እባክዎ ዳግም ይሞክሩ።";
+        } finally {
+            spinner.style.display = 'none';
+        }
+    }
+    
+    function updateMemberUIHeader() {
+        if(currentUser.role !== 'member' || !currentUser.memberId) return;
+        let m = membersList.find(mem => mem.id === currentUser.memberId);
+        if(!m) return;
+        let mContribs = contributions[m.id] || [];
+        let regTotal = mContribs.filter(c => c.type === 'regular').reduce((s,c) => s + (parseFloat(c.amount)||0), 0);
+        let specTotal = mContribs.filter(c => c.type === 'special').reduce((s,c) => s + (parseFloat(c.amount)||0), 0);
+        let headerDiv = document.getElementById('memberStatsHeader');
+        if(headerDiv) {
+            headerDiv.style.display = 'flex';
+            headerDiv.innerHTML = `
+                <div class="info-item"><label>መለያ ኮድ</label><span>${m.id}</span></div>
+                <div class="info-item"><label>ጾታ</label><span>${m.gender || '-'}</span></div>
+                <div class="info-item"><label>አድራሻ</label><span>${m.address || '-'}</span></div>
+                <div class="info-item"><label>ጠቅላላ መደበኛ</label><span>${regTotal.toLocaleString()} ብር</span></div>
+                <div class="info-item"><label>ጠቅላላ ልዩ</label><span>${specTotal.toLocaleString()} ብር</span></div>
+            `;
+        }
+    }
+    
+    function setRole(r) { window.currentRole = r; document.getElementById('adminTypeBtn').classList.toggle('active', r === 'admin'); document.getElementById('memberTypeBtn').classList.toggle('active', r === 'member'); }
+    function togglePass() { let inp = document.getElementById('loginPass'); inp.type = inp.type === 'password' ? 'text' : 'password'; }
+    
+    function handleLogin() {
+        const code = document.getElementById('loginPass').value.trim();
+        const spinner = document.getElementById('loginSpinner');
+        
+        if (!code) {
+            document.getElementById('loginErrorMsg').innerHTML = "እባክዎ የመለያ ኮድ ያስገቡ";
+            return;
+        }
+        
+        spinner.style.display = 'block';
+        document.getElementById('loginErrorMsg').innerHTML = "";
+        
+        if(window.currentRole === 'admin') {
+            if(code === 'admin123') {
+                currentUser = { role: 'admin', memberId: null };
+                loadDataAndStartApp();
+            } else {
+                spinner.style.display = 'none';
+                document.getElementById('loginErrorMsg').innerHTML = 'የአድሚን ፓስዎርድ ተሳስቷል';
+            }
+        } else {
+            // Member login - check if code exists in membersList
+            const found = membersList.find(m => m.id === code);
+            if(found) {
+                currentUser = { role: 'member', memberId: found.id };
+                loadDataAndStartApp();
+            } else {
+                spinner.style.display = 'none';
+                document.getElementById('loginErrorMsg').innerHTML = 'የአባል አይዲ ተሳስቷል';
+            }
+        }
+    }
+    
+    function logout() { 
+        document.getElementById('loginOverlay').style.display = 'flex'; 
+        document.getElementById('mainApp').style.display = 'none'; 
+        document.getElementById('loginPass').value = '';
+        document.getElementById('loginErrorMsg').innerHTML = '';
+    }
+    
+    // Event Listeners for lazy loading
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.getElementById(btn.dataset.tab + 'Pane').classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if(btn.dataset.tab === 'members') {
+                filterContributionReport();
+            } else {
+                ensureConstructionLoaded();
+                filterPurchaseReport();
+            }
+        });
+    });
+    document.getElementById('totalCostBox').addEventListener('click', () => { let p = document.getElementById('detailedReportPanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; });
+    document.getElementById('newMaterialCat').addEventListener('change', function() {
+        let sub = document.getElementById('newMaterialSubType');
+        if(this.value === 'iron') sub.innerHTML = '<option>8ሚሜ</option><option>10ሚሜ</option><option>12ሚሜ</option><option>14ሚሜ</option><option>16ሚሜ</option><option>20ሚሜ</option><option>24ሚሜ</option>';
+        else sub.innerHTML = '<option>መደበኛ</option><option>ልዩ</option>';
+    });
+    
+    // Expose global functions
+    window.setRole = setRole; window.togglePass = togglePass; window.handleLogin = handleLogin; window.logout = logout;
+    window.addNewPurchase = addNewPurchase; window.showMaterialTable = showMaterialTable; window.showMaterialDetail = showMaterialDetail;
+    window.updateMat = updateMat; window.addMatRow = addMatRow; window.delMatRow = delMatRow;
+    window.registerMember = registerMember; window.addContribution = addContribution; window.deleteMember = deleteMember;
+    window.filterMembersByType = filterMembersByType; window.filterContributionReport = filterContributionReport;
+    window.exportContributionReportExcel = exportContributionReportExcel; window.exportContributionReportPDF = exportContributionReportPDF;
+    window.printContributionReport = printContributionReport;
+    window.filterPurchaseReport = filterPurchaseReport; window.exportPurchaseReportExcel = exportPurchaseReportExcel;
+    window.filterMemberDisplayList = filterMemberDisplayList; window.selectMember = selectMember;
+    window.printSelectedMemberOnly = printSelectedMemberOnly; window.exportSelectedMemberToExcel = exportSelectedMemberToExcel;
+    window.toggleMemberMgmt = toggleMemberMgmt; window.addAnnouncement = addAnnouncement; window.deleteAnnounce = deleteAnnounce;
+    window.togglePurchaseReport = togglePurchaseReport; window.toggleContributionReport = toggleContributionReport;
+    window.toggleMemberList = toggleMemberList; window.toggleNewPurchaseForm = toggleNewPurchaseForm;
+    window.toggleAnnouncements = toggleAnnouncements; window.printMemberRegistrationList = printMemberRegistrationList;
+    window.updateMemberUIHeader = updateMemberUIHeader; window.ensureConstructionLoaded = ensureConstructionLoaded;
+    window.handleMemberSearchDebounced = handleMemberSearchDebounced;
+</script>
+</body>
+</html>
