@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>የህፃናት ኦሎምፒክ ውድድር</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f0f4f8;color:#1a1a1a;line-height:1.55}
+    .olympic-bg{background:linear-gradient(135deg,#0085C7 0%,#F4C300 25%,#000 50%,#009F3D 75%,#DF0024 100%);min-height:100vh}
+    nav{display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.5rem;background:rgba(0,0,0,.45);color:#fff;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);flex-wrap:wrap;gap:.5rem}
+    nav .logo{font-size:1.3rem;font-weight:bold}
+    nav a{color:#fff;text-decoration:none;margin-left:.8rem;font-weight:500;font-size:.9rem}
+    nav .btn-nav{background:#fff;color:#0085C7;padding:.4rem 1rem;border-radius:999px;font-weight:bold}
+    .hero{text-align:center;padding:3.2rem 1.2rem 4rem;color:#fff}
+    .hero h1{font-size:clamp(1.9rem,5vw,3.4rem);font-weight:900;text-shadow:0 4px 18px rgba(0,0,0,.4);margin-bottom:1.2rem}
+    .kids-row{display:flex;justify-content:center;align-items:flex-end;gap:1.6rem;height:120px;margin:1.8rem 0 2rem}
+    .medal-slider{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin:1.5rem 0 1.8rem;height:130px;position:relative}
+    .medal{width:100px;height:110px;border-radius:50% 50% 40% 40%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2.2rem;font-weight:900;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.4);box-shadow:0 8px 20px rgba(0,0,0,.3);opacity:0;transform:scale(0.7);transition:all .6s ease;position:absolute}
+    .medal.active{opacity:1;transform:scale(1);position:relative}
+    .medal.gold{background:linear-gradient(145deg,#FFD700,#FFA500,#FFD700);border:4px solid #009F3D}
+    .medal.silver{background:linear-gradient(145deg,#E8E8E8,#A8A8A8,#E8E8E8);border:4px solid #F4C300}
+    .medal.bronze{background:linear-gradient(145deg,#CD7F32,#8B4513,#CD7F32);border:4px solid #DF0024}
+    .medal span{font-size:.65rem;margin-top:2px;font-weight:700}
+    .medal .rank{font-size:.75rem;background:rgba(0,0,0,.25);padding:1px 8px;border-radius:10px;margin-top:3px}
+    .kid{width:80px;height:108px;background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.45);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:8px;font-size:2.4rem;animation:jump 1.1s ease-in-out infinite;box-shadow:0 8px 22px rgba(0,0,0,.25)}
+    .kid:nth-child(2){animation-delay:.25s}.kid:nth-child(3){animation-delay:.5s}
+    .kid span{font-size:.6rem;font-weight:bold;margin-top:2px}
+    @keyframes jump{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-24px) rotate(3deg)}}
+    .btn{display:inline-block;padding:.8rem 1.8rem;border-radius:999px;font-weight:bold;font-size:1rem;text-decoration:none;border:none;cursor:pointer;transition:transform .2s}
+    .btn:hover{transform:scale(1.04)}
+    .btn-primary{background:#DF0024;color:#fff;box-shadow:0 5px 18px rgba(223,0,36,.4);margin-right:.6rem}
+    .btn-secondary{background:rgba(255,255,255,.2);color:#fff;border:2px solid rgba(255,255,255,.55)}
+    .section{max-width:1150px;margin:0 auto;padding:2.2rem 1.2rem}
+    .section h2{text-align:center;font-size:1.75rem;margin-bottom:.35rem;color:#003366}
+    .section .desc{text-align:center;color:#555;margin-bottom:1.5rem;font-size:.95rem}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.1rem;background:#fff;padding:2.2rem 1.2rem}
+    .feature-card{background:linear-gradient(145deg,#e8f4fc,#fff9e6);padding:1.15rem;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.06);border:1px solid #d0e8f8}
+    .feature-card .icon{font-size:1.7rem;margin-bottom:.4rem}
+    .feature-card h3{font-size:1rem;margin-bottom:.25rem;color:#003366}
+    .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:.8rem;background:#fff;padding:1.15rem;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.06);margin-bottom:1.5rem}
+    .filters label{display:block;font-size:.8rem;font-weight:600;margin-bottom:.2rem;color:#444}
+    .filters select,.filters input{width:100%;padding:.5rem .7rem;border:1px solid #ccc;border-radius:7px;font-size:.9rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:1.1rem}
+    .card{background:#fff;border-radius:12px;padding:1.1rem;box-shadow:0 3px 10px rgba(0,0,0,.06);border:2px solid transparent;transition:.2s;position:relative}
+    .card:hover{border-color:#0085C7;transform:translateY(-2px)}
+    .card.full{opacity:.65;border-color:#ffcdd2}
+    .card.selected{border-color:#009F3D;background:#e8f5e9}
+    .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.45rem}
+    .badge{font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:999px;background:#e3f2fd;color:#1565c0}
+    .slots{font-size:.8rem;font-weight:700}.slots.ok{color:#2e7d32}.slots.full{color:#c62828}
+    .card h3{font-size:.95rem;margin-bottom:.2rem}
+    .card .meta{font-size:.8rem;color:#666;margin-bottom:.6rem}
+    .card .price{font-weight:800;color:#0085C7;font-size:1rem}
+    .card .team-badge{font-size:.7rem;background:#fff8e1;color:#f57f17;padding:.15rem .4rem;border-radius:5px;margin-left:.35rem}
+    .card button,.card .sel-btn{width:100%;margin-top:.75rem;padding:.55rem;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-size:.88rem}
+    .sel-btn{background:#0085C7;color:#fff}.sel-btn:hover{background:#006da3}
+    .sel-btn.selected{background:#009F3D}
+    .sel-btn:disabled{background:#e0e0e0;color:#999;cursor:not-allowed}
+    .cart-bar{position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;color:#fff;padding:.9rem 1.2rem;display:none;justify-content:space-between;align-items:center;z-index:200;box-shadow:0 -4px 20px rgba(0,0,0,.3);flex-wrap:wrap;gap:.6rem}
+    .cart-bar.show{display:flex}
+    .cart-bar .info{font-size:.95rem}
+    .cart-bar button{background:#DF0024;color:#fff;border:none;padding:.6rem 1.4rem;border-radius:8px;font-weight:700;cursor:pointer}
+    .form-box{max-width:560px;margin:0 auto;background:#fff;padding:1.6rem;border-radius:14px;box-shadow:0 6px 24px rgba(0,0,0,.1)}
+    .form-box h2{text-align:center;margin-bottom:.25rem;color:#003366}
+    .form-box .step-info{text-align:center;color:#777;margin-bottom:1.2rem;font-size:.9rem}
+    .progress{display:flex;gap:.4rem;margin-bottom:1.3rem}
+    .progress div{flex:1;height:5px;border-radius:99px;background:#e0e0e0}
+    .progress div.active{background:#0085C7}
+    .form-group{margin-bottom:.9rem}
+    .form-group label{display:block;font-weight:600;margin-bottom:.2rem;font-size:.85rem}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:.6rem .8rem;border:1px solid #ccc;border-radius:7px;font-size:.92rem}
+    .form-actions{display:flex;gap:.6rem;margin-top:1.1rem}
+    .form-actions button{flex:1;padding:.7rem;border-radius:7px;font-weight:700;font-size:.92rem;cursor:pointer;border:none}
+    .btn-back{background:#f0f0f0;color:#333}.btn-next{background:#0085C7;color:#fff}.btn-submit{background:#009F3D;color:#fff}
+    .btn-submit:disabled{background:#aaa;cursor:wait}
+    .loc-btn{background:#0085C7;color:#fff;border:none;padding:.5rem .9rem;border-radius:7px;font-weight:600;cursor:pointer;font-size:.88rem;margin-top:.35rem}
+    .loc-status{font-size:.82rem;margin-top:.35rem;color:#2e7d32}
+    .file-box{border:2px dashed #90caf9;border-radius:9px;padding:.9rem;text-align:center;background:#e3f2fd;cursor:pointer}
+    .file-box input{display:none}
+    .dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.8rem;margin-bottom:1.5rem}
+    .dash-stat{background:#fff;padding:1rem;border-radius:11px;box-shadow:0 2px 8px rgba(0,0,0,.05);display:flex;align-items:center;gap:.6rem}
+    .dash-stat .icon{font-size:1.5rem}
+    .reg-item{background:#fff;border-radius:11px;padding:1rem;margin-bottom:.65rem;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.6rem;box-shadow:0 2px 7px rgba(0,0,0,.05)}
+    .status-ok{color:#2e7d32;font-weight:700}.status-pending{color:#f57f17;font-weight:700}
+    footer{background:#111;color:#ccc;text-align:center;padding:1.3rem;font-size:.85rem}
+    .page{display:none}.page.active{display:block}
+    .status-bar{background:#e8f5e9;color:#2e7d32;text-align:center;padding:.3rem;font-size:.8rem;font-weight:600}
+    .status-bar.error{background:#ffebee;color:#c62828}.status-bar.warn{background:#fff8e1;color:#f57f17}
+    #loading-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;justify-content:center;align-items:center;color:#fff;font-size:1.15rem;font-weight:bold}
+    #loading-overlay.show{display:flex}
+    .admin-table{width:100%;border-collapse:collapse;background:#fff;border-radius:11px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.06);font-size:.88rem}
+    .admin-table th,.admin-table td{padding:.6rem .75rem;text-align:left;border-bottom:1px solid #eee}
+    .admin-table th{background:#1a1a2e;color:#fff}
+    .admin-table tr:hover{background:#f5f9fc}
+    .admin-nav{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem}
+    .admin-nav button{padding:.55rem 1rem;border:none;border-radius:8px;background:#e3f2fd;color:#1565c0;font-weight:600;cursor:pointer;font-size:.88rem}
+    .admin-nav button.active{background:#0085C7;color:#fff}
+    .edit-box,.panel-box{background:#fff;padding:1.3rem;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.07);margin-bottom:1.3rem}
+    .cluster-card{background:#e8f5e9;padding:1rem;border-radius:10px;margin-bottom:.7rem;border-left:4px solid #009F3D}
+    .result-row{display:flex;gap:.6rem;align-items:center;margin-bottom:.6rem;flex-wrap:wrap}
+    .result-row input,.result-row select{padding:.45rem .6rem;border:1px solid #ccc;border-radius:6px;font-size:.88rem}
+    .winner{background:#fff8e1;border-left:4px solid #f9a825;padding:.8rem;border-radius:8px;margin-top:.5rem}
+    .msg-btns{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+    .msg-btns button{padding:.4rem .8rem;border:none;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer}
+    .btn-email{background:#1565c0;color:#fff}
+    .btn-sms{background:#2e7d32;color:#fff}
+    .heat-card{background:#fff3e0;border-left:4px solid #ef6c00;padding:.9rem;border-radius:8px;margin-bottom:.6rem}
+    .witness-box{background:#f5f5f5;padding:1rem;border-radius:8px;margin:1rem 0}
+    @media(max-width:600px){.kids-row{gap:.9rem}.kid{width:62px;height:88px;font-size:1.9rem}nav a{margin-left:.45rem;font-size:.82rem}}
+  </style>
+</head>
+<body>
+  <div id="loading-overlay">እባክዎ ይጠብቁ...</div>
+  <div id="firebase-status" class="status-bar warn" style="padding:.15rem;font-size:.7rem" title="Firebase status">●</div>
+
+  <div class="cart-bar" id="cart-bar">
+    <div class="info"><span id="cart-count">0</span> ውድድር ተመርጧል • ድምር: <strong id="cart-total">0</strong> ብር (መሠረታዊ 3 በ2000 • ተጨማሪ 20% ቅናሽ)</div>
+    <button onclick="showPaymentForm()">ክፍያ ክፈል</button>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="payment-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;justify-content:center;align-items:center;padding:1rem">
+    <div style="background:#fff;max-width:520px;width:100%;border-radius:14px;padding:1.5rem;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.3)">
+      <h2 style="text-align:center;color:#003366;margin-bottom:.5rem">ክፍያ ያድርጉ</h2>
+      <div id="pay-comp-list" style="background:#f5f9fc;padding:.8rem 1rem;border-radius:8px;margin-bottom:.8rem;font-size:.88rem"></div>
+      <p style="text-align:center;color:#555;font-size:1rem;margin-bottom:1rem">ድምር: <strong id="pay-total" style="color:#DF0024;font-size:1.2rem">0</strong> ብር</p>
+      <div class="form-group"><label>ጠቅላላ የተከፈለ ገንዘብ (ራስ-ሰር)</label>
+        <input type="number" id="pay-auto-total" readonly style="background:#f5f5f5;font-weight:bold;color:#DF0024">
+      </div>
+      <div style="background:#e8f5e9;padding:1rem;border-radius:10px;margin-bottom:1rem;font-size:.9rem">
+        <strong>የድርጅቱ አካውንቶች:</strong>
+        <ul style="margin:.5rem 0 0 1.2rem;line-height:1.7">
+          <li><b>ቴሌብር (Telebirr)</b>: 0941703090</li>
+          <li><b>ንግድ ባንክ (CBE)</b>: 1000845888888</li>
+          <li><b>ዎጋገን ባንክ</b>: 0820597630101</li>
+          <li><b>አዋሽ ባንክ</b>: 01320108685200</li>
+        </ul>
+      </div>
+      <div class="form-group"><label>ባንክ ይምረጡ *</label>
+        <select id="pay-bank">
+          <option value="">-- ይምረጡ --</option>
+          <option value="Telebirr">ቴሌብር (0941703090)</option>
+          <option value="CBE">ንግድ ባንክ (1000845888888)</option>
+          <option value="Wegagen">ዎጋገን ባንክ (0820597630101)</option>
+          <option value="Awash">አዋሽ ባንክ (01320108685200)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>የባንክ ሲሊፕ ኮድ / Reference *</label>
+        <input type="text" id="pay-slip-code" placeholder="ምሳሌ: TRX123456789">
+      </div>
+      <div class="form-group"><label>ባንክ ሊንክ / Transaction link (copy-paste)</label>
+        <input type="text" id="pay-link" placeholder="ከባንክ መተግበሪያ የተገኘ ሊንክ">
+      </div>
+      <div class="form-group"><label>ስክሪንሾት / ስሊፕ ምስል (አማራጭ)</label>
+        <input type="file" id="pay-file" accept="image/*,.pdf">
+      </div>
+      <div style="display:flex;gap:.6rem;margin-top:1rem">
+        <button class="btn-back" style="flex:1" onclick="document.getElementById('payment-modal').style.display='none'">ሰርዝ</button>
+        <button class="btn-submit" style="flex:1" onclick="submitPayment()">ክፍያ አረጋግጥና ምዝገባ ጨርስ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending confirmation -->
+  <div id="pending-msg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:350;justify-content:center;align-items:center;padding:1rem">
+    <div style="background:#fff;max-width:420px;width:100%;border-radius:14px;padding:2rem;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)">
+      <div style="font-size:3rem;margin-bottom:.5rem">⏳</div>
+      <h2 style="color:#003366;margin-bottom:.8rem">ምዝገባዎ ጨርሷል</h2>
+      <p style="color:#555;line-height:1.6;margin-bottom:1.2rem">ምዝገባዎ <strong>በአድሚኑ እስኪረጋገጥ</strong> ለአሁኑ ጨርሰዋል።<br>ክፍያዎ ከተረጋገጠ በኋላ ኢሜይልና SMS ይደርስዎታል።</p>
+      <button class="btn-next" style="padding:.7rem 1.5rem" onclick="document.getElementById('pending-msg').style.display='none';showPage('dashboard')">ዳሽቦርድ ይመልከቱ</button>
+    </div>
+  </div>
+
+  <!-- HOME -->
+  <div id="page-home" class="page active olympic-bg">
+    <nav>
+      <div class="logo">ኦሎምፒክ ህፃናት</div>
+      <div>
+        <a href="#" onclick="showPage('competitions')">ውድድሮች</a>
+        <a href="#" onclick="showPage('register')" class="btn-nav">ይመዝገቡ</a>
+        <a href="#" onclick="showPage('login')">ግባ</a>
+        <a href="#" onclick="showPage('dashboard')">ዳሽቦርድ</a>
+        <a href="#" onclick="showPage('results')">ውጤት</a>
+        <a href="#" onclick="showPage('schedule')">የጊዜ ሰሌዳ</a>
+        <a href="#" onclick="showPage('judge')">ዳኛ</a>
+        <a href="#" onclick="showPage('admin')">አድሚን</a>
+      </div>
+    </nav>
+    <section class="hero">
+      <h1>የህፃናት ኦሎምፒክ ውድድር</h1>
+      <div class="medal-slider" id="medal-slider">
+        <div class="medal gold active" data-idx="0">🥇<span>ወርቅ</span><div class="rank">1ኛ ደረጃ</div></div>
+        <div class="medal silver" data-idx="1">🥈<span>ብር</span><div class="rank">2ኛ ደረጃ</div></div>
+        <div class="medal bronze" data-idx="2">🥉<span>ነሐስ</span><div class="rank">3ኛ ደረጃ</div></div>
+      </div>
+      <div class="kids-row">
+        <div class="kid">🏃<span>ህፃን 1</span></div>
+        <div class="kid">🏃<span>ህፃን 2</span></div>
+        <div class="kid">🏃<span>ህፃን 3</span></div>
+      </div>
+      <a href="#" class="btn btn-primary" onclick="showPage('register')">አሁን ይመዝገቡ</a>
+      <a href="#" class="btn btn-secondary" onclick="showPage('competitions')">ውድድሮችን ይመልከቱ</a>
+    </section>
+    <section class="features">
+      <div class="feature-card"><div class="icon">🛒</div><h3>መሠረታዊ 3 + ቅናሽ</h3><p>2000 ብር ለ3 ውድድር • ተጨማሪ ላይ 20% ቅናሽ</p></div>
+      <div class="feature-card"><div class="icon">📍</div><h3>GPS + 1ኪሜ ክላስተር</h3><p>በአቅራቢያ ያሉ ህፃናትን አድሚን ያያል</p></div>
+      <div class="feature-card"><div class="icon">📧</div><h3>ኢሜይል + SMS</h3><p>ምዝገባና ምድብ በኢሜይል/SMS ይደርሳል</p></div>
+      <div class="feature-card"><div class="icon">🏅</div><h3>ውጤት + ዳኛ</h3><p>ዳኛ ውጤት ይመዘግባል • PDF ይወርዳል</p></div>
+    </section>
+    <footer>© 2026 የህፃናት ኦሎምፒክ ውድድር</footer>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="page-login" class="page">
+    <nav style="background:#0085C7">
+      <div class="logo">ኦሎምፒክ ህፃናት</div>
+      <div><a href="#" onclick="showPage('home')">መነሻ</a><a href="#" onclick="showPage('register')">ይመዝገቡ</a></div>
+    </nav>
+    <div class="section">
+      <div class="form-box">
+        <h2>ተሳታፊ መግቢያ</h2>
+        <p class="step-info">ኢሜይል <strong>ወይም</strong> ስልክ + የይለፍ ቃልዎን ያስገቡ</p>
+        <div class="form-group"><label>ኢሜይል ወይም ስልክ *</label><input type="text" id="login-email" placeholder="ኢሜይል ወይም 09xxxxxxxx"></div>
+        <div class="form-group"><label>የይለፍ ቃል *</label><input type="password" id="login-pass"></div>
+        <div class="form-actions"><button class="btn-next" style="width:100%" onclick="loginUser()">ግባ</button></div>
+        <p style="text-align:center;margin-top:1rem;font-size:.9rem">መለያ የለዎትም? <a href="#" onclick="showPage('register')">ይመዝገቡ</a></p>
+      </div>
+    </div>
+    <footer>© 2026 የህፃናት ኦሎምፒክ</footer>
+  </div>
+
+  <!-- COMPETITIONS -->
+  <div id="page-competitions" class="page">
+    <nav style="background:#0085C7">
+      <div class="logo">ኦሎምፒክ ህፃናት</div>
+      <div>
+        <a href="#" onclick="showPage('home')">መነሻ</a>
+        <a href="#" onclick="showPage('register')" class="btn-nav">ይመዝገቡ</a>
+        <a href="#" onclick="showPage('dashboard')">ዳሽቦርድ</a>
+        <a href="#" onclick="showPage('results')">ውጤት</a>
+        <a href="#" onclick="showPage('schedule')">የጊዜ ሰሌዳ</a>
+      </div>
+    </nav>
+    <div class="section">
+      <h2>የውድድር አይነቶች</h2>
+      <p class="desc">መሠረታዊ ጥቅል <strong>2000 ብር</strong> ለ3 ውድድር • ከ3 በላይ 20% ቅናሽ</p>
+      <div class="filters">
+        <div><label>እድሜ / ክፍል</label>
+          <select id="filter-age" onchange="renderCompetitions()">
+            <option value="">ሁሉም</option>
+            <option value="5-7">5-7</option><option value="8-10">8-10</option>
+            <option value="11-13">11-13</option><option value="14-15">14-15</option><option value="16-18">16-18</option>
+            <option value="KG2">KG2</option>
+            <option value="1">1ኛ</option><option value="2">2ኛ</option><option value="3">3ኛ</option>
+            <option value="4">4ኛ</option><option value="5">5ኛ</option><option value="6">6ኛ</option>
+            <option value="7">7ኛ</option><option value="8">8ኛ</option><option value="9">9ኛ</option>
+            <option value="10">10ኛ</option><option value="11">11ኛ</option><option value="12">12ኛ</option>
+          </select>
+        </div>
+        <div><label>ፆታ</label>
+          <select id="filter-gender" onchange="renderCompetitions()">
+            <option value="">ሁሉም</option><option value="MALE">ወንድ</option><option value="FEMALE">ሴት</option>
+          </select>
+        </div>
+        <div><label>ስፖርት / አይነት</label>
+          <select id="filter-category" onchange="renderCompetitions()">
+            <option value="">ሁሉም</option>
+            <option value="RUNNING">ሩጫ</option><option value="ROAD_RUNNING">የጎዳና ላይ</option>
+            <option value="ROPE">ገመድ</option><option value="RELAY">ዱላ ቅብብል</option>
+            <option value="ROAD_RELAY">የጎዳና ዱላ</option><option value="FOOTBALL">እግር ኳስ</option>
+            <option value="KNOWLEDGE">የእውቀት ውድድርና ምዘና</option>
+          </select>
+        </div>
+        <div><label>ፈልግ</label><input type="text" id="filter-search" placeholder="ስም..." oninput="renderCompetitions()"></div>
+      </div>
+      <p id="count-label" style="margin-bottom:1rem;color:#555"></p>
+      <div class="cards" id="competitions-list"></div>
+    </div>
+    <footer style="margin-bottom:70px">© 2026 የህፃናት ኦሎምፒክ</footer>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="page-register" class="page">
+    <nav style="background:#0085C7">
+      <div class="logo">ኦሎምፒክ ህፃናት</div>
+      <div><a href="#" onclick="showPage('home')">መነሻ</a><a href="#" onclick="showPage('login')">ግባ</a><a href="#" onclick="showPage('competitions')">ውድድሮች</a></div>
+    </nav>
+    <div class="section">
+      <div class="form-box">
+        <h2>ምዝገባ (የራስዎ መለያ)</h2>
+        <p class="step-info">ደረጃ <span id="step-num">1</span> ከ 3 • የይለፍ ቃልዎን እርስዎ ይምረጡ</p>
+        <div class="progress"><div id="prog1" class="active"></div><div id="prog2"></div><div id="prog3"></div></div>
+        <div id="step1">
+          <h3 style="margin-bottom:.9rem">የወላጅ / ተወካይ መረጃ</h3>
+          <div class="form-group"><label>ሙሉ ስም *</label><input type="text" id="parentName"></div>
+          <div class="form-group">
+            <label>ኢሜይል (አማራጭ)</label>
+            <input type="email" id="email" placeholder="ምሳሌ: name@gmail.com">
+            <p style="font-size:.82rem;color:#1565c0;margin-top:.35rem;line-height:1.45;background:#e3f2fd;padding:.55rem .7rem;border-radius:7px">
+              <strong>ለምን ኢሜይል ይጠቅማል?</strong><br>
+              • የምዝገባ ማረጋገጫና የውድድር ማስታወሻ በኢሜይል ይደርስዎታል<br>
+              • ክፍያ ሲረጋገጥና ውጤት ሲወጣ ወዲያውኑ ማሳወቂያ ያገኛሉ<br>
+              • በኋላ ከፈለጉ ስልክዎን ከኢሜይል ጋር ማያያዝ ይችላሉ<br>
+              ኢሜይል ከሌለዎት <strong>በስልክ ቁጥር ብቻ</strong> መመዝገብ ይችላሉ።
+            </p>
+          </div>
+          <div class="form-group"><label>ስልክ *</label><input type="tel" id="phone" placeholder="09xxxxxxxx"></div>
+          <div class="form-group"><label>የይለፍ ቃል * (እርስዎ የሚመርጡት)</label><input type="password" id="password" minlength="6" placeholder="ቢያንስ 6 ቁምፊ"></div>
+          <div class="form-group"><label>የይለፍ ቃል እንደገና *</label><input type="password" id="password2" minlength="6"></div>
+          <div class="form-actions"><button class="btn-next" onclick="goStep(2)">ቀጥል</button></div>
+        </div>
+        <div id="step2" style="display:none">
+          <h3 style="margin-bottom:.9rem">የልጅ መረጃ</h3>
+          <div class="form-group"><label>የልጅ ስም *</label><input type="text" id="childName"></div>
+          <div class="form-group">
+            <label>📄 የልደት ሰርተፊኬት (PDF/ምስል)</label>
+            <div class="file-box" onclick="document.getElementById('birthCert').click()">
+              <input type="file" id="birthCert" accept=".pdf,image/*" onchange="handleBirthCert(this)">
+              <p id="cert-label">ጠቅ አድርገው ይጫኑ</p>
+            </div>
+          </div>
+          <div class="form-group"><label>የትውልድ ቀን * <span id="age-preview" style="color:#0085C7"></span></label>
+            <input type="date" id="birthDate" onchange="updateAgePreview()"></div>
+          <div class="form-group"><label>ፆታ *</label>
+            <select id="gender"><option value="">ይምረጡ</option><option value="MALE">ወንድ</option><option value="FEMALE">ሴት</option></select></div>
+          <div class="form-group"><label>ት/ቤት *</label><input type="text" id="schoolName"></div>
+          <div class="form-actions"><button class="btn-back" onclick="goStep(1)">ተመለስ</button><button class="btn-next" onclick="goStep(3)">ቀጥል</button></div>
+        </div>
+        <div id="step3" style="display:none">
+          <h3 style="margin-bottom:.9rem">አድራሻ / GPS</h3>
+          <div class="form-group"><label>አድራሻ * (በራስዎ ይጻፉ ወይም GPS ይጠቀሙ)</label>
+            <input type="text" id="homeAddress" placeholder="ከተማ, ሰፈር, ቤት ቁጥር..."></div>
+          <div style="background:#e3f2fd;padding:.9rem;border-radius:9px;margin-bottom:.9rem">
+            <p style="font-size:.85rem;color:#1565c0;margin-bottom:.4rem">ወይም GPS ይጠቀሙ (አማራጭ)</p>
+            <button type="button" class="loc-btn" onclick="getCurrentLocation()">📍 የአሁኑን ቦታዬን ውሰድ</button>
+            <div id="loc-status" class="loc-status"></div>
+          </div>
+          <div class="form-group"><label>Latitude</label><input type="text" id="homeLat" readonly></div>
+          <div class="form-group"><label>Longitude</label><input type="text" id="homeLng" readonly></div>
+          <div class="form-actions"><button class="btn-back" onclick="goStep(2)">ተመለስ</button>
+            <button class="btn-submit" id="btn-finish" onclick="submitRegistration()">ምዝገባ ጨርስ → ውድድር ምረጥ</button></div>
+        </div>
+      </div>
+    </div>
+    <footer>© 2026 የህፃናት ኦሎምፒክ</footer>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page">
+    <nav style="background:#0085C7">
+      <div class="logo">ተሳታፊ ዳሽቦርድ</div>
+      <div>
+        <a href="#" onclick="showPage('home')">መነሻ</a>
+        <a href="#" onclick="showPage('competitions')">ውድድሮች</a>
+        <a href="#" onclick="showPage('results')">ውጤት</a>
+        <a href="#" onclick="showPage('schedule')">የጊዜ ሰሌዳ</a>
+        <a href="#" onclick="logoutUser()" style="color:#ffccbc">ውጣ</a>
+      </div>
+    </nav>
+    <div class="section">
+      <h2>ዳሽቦርድ</h2>
+      <p class="desc" id="dash-welcome">ሰላም!</p>
+      <div class="dash-cards">
+        <div class="dash-stat"><div class="icon">🏆</div><div><div style="font-size:.8rem;color:#666">ውድድሮች</div><div style="font-size:1.25rem;font-weight:800" id="stat-regs">0</div></div></div>
+        <div class="dash-stat"><div class="icon">💰</div><div><div style="font-size:.8rem;color:#666">ያልተከፈለ</div><div style="font-size:1.25rem;font-weight:800" id="stat-unpaid">0 ብር</div></div></div>
+      </div>
+      <div class="edit-box">
+        <h3 style="margin-bottom:.7rem">✏️ አድራሻ / GPS ማስተካከል</h3>
+        <div class="form-group"><label>አድራሻ</label><input type="text" id="edit-address"></div>
+        <div class="form-group"><label>Latitude</label><input type="text" id="edit-lat"></div>
+        <div class="form-group"><label>Longitude</label><input type="text" id="edit-lng"></div>
+        <button type="button" class="loc-btn" onclick="getCurrentLocationForEdit()">📍 GPS ውሰድ</button>
+        <button class="btn-next" style="padding:.5rem 1.2rem;margin-left:.5rem" onclick="saveAddressEdit()">አስቀምጥ</button>
+        <div id="edit-loc-status" class="loc-status"></div>
+      </div>
+      <h3 style="margin:1.1rem 0 .7rem">የተመዘገቡ ውድድሮች</h3>
+      <div id="my-registrations"></div>
+      <h3 style="margin:1.3rem 0 .7rem">📍 በ1 ኪሜ ራዲየስ ያሉ ህፃናት</h3>
+      <div id="my-nearby" class="panel-box"><p style="color:#777">GPS ካስገቡ በኋላ አቅራቢያ ያሉት ይታያሉ</p></div>
+      <h3 style="margin:1.3rem 0 .7rem">👥 የእርስዎ ምድብ / ቡድን / ሙቀት</h3>
+      <div id="my-groups" class="panel-box"><p style="color:#777">ምድብ ሲደለድል እዚህ ይታያል</p></div>
+    </div>
+    <footer>© 2026 የህፃናት ኦሎምፒክ</footer>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="page-results" class="page">
+    <nav style="background:#0085C7">
+      <div class="logo">ውጤቶች</div>
+      <div>
+        <a href="#" onclick="showPage('home')">መነሻ</a>
+        <a href="#" onclick="showPage('dashboard')">ዳሽቦርድ</a>
+        <a href="#" onclick="showPage('competitions')">ውድድሮች</a>
+        <a href="#" onclick="showPage('schedule')">የጊዜ ሰሌዳ</a>
+      </div>
+    </nav>
+    <div class="section">
+      <h2>ውጤቶች</h2>
+      <p class="desc">የሁሉም ውድድር ውጤት</p>
+      <div class="filters" style="margin-bottom:1.2rem">
+        <div><label>ውድድር አይነት</label>
+          <select id="res-filter-cat" onchange="renderPublicResults()">
+            <option value="">ሁሉም</option>
+            <option value="RUNNING">ሩጫ</option><option value="ROAD_RUNNING">የጎዳና ላይ</option>
+            <option value="ROPE">ገመድ</option><option value="RELAY">ዱላ</option>
+            <option value="FOOTBALL">እግር ኳስ</option>
+            <option value="KNOWLEDGE">የእውቀት ውድድርና ምዘና</option>
+          </select>
+        </div>
+      </div>
+      <div id="public-results"></div>
+      <h3 style="margin:1.5rem 0 .7rem">🏅 የእርስዎ ውጤት</h3>
+      <div id="my-results" class="panel-box"><p style="color:#777">ውጤት ሲገባ እዚህ ይታያል</p></div>
+    </div>
+    <footer>© 2026 የህፃናት ኦሎምፒክ</footer>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div id="page-schedule" class="page">
+    <nav style="background:#0085C7">
+      <div class="logo">የጊዜ ሰሌዳ</div>
+      <div>
+        <a href="#" onclick="showPage('home')">መነሻ</a>
+        <a href="#" onclick="showPage('competitions')">ውድድሮች</a>
+        <a href="#" onclick="showPage('dashboard')">ዳሽቦርድ</a>
+        <a href="#" onclick="showPage('results')">ውጤት</a>
+      </div>
+    </nav>
+    <div class="section">
+      <h2>የውድድር ጊዜ ሰሌዳ (አንድ ቀን)</h2>
+      <p class="desc">ሁሉም ውድድሮች ከ <strong>04:00</strong> እስከ <strong>11:00</strong> በአንድ ቀን • 8 ትይዩ ቦታዎች</p>
+      <div class="filters">
+        <div><label>ቦታ / Track</label>
+          <select id="sch-track" onchange="renderSchedule()">
+            <option value="">ሁሉም</option>
+            <option value="ቦታ 1">ቦታ 1</option><option value="ቦታ 2">ቦታ 2</option>
+            <option value="ቦታ 3">ቦታ 3</option><option value="ቦታ 4">ቦታ 4</option>
+            <option value="ቦታ 5">ቦታ 5</option><option value="ቦታ 6">ቦታ 6</option>
+            <option value="ቦታ 7">ቦታ 7</option><option value="ቦታ 8">ቦታ 8</option>
+          </select>
+        </div>
+        <div><label>እድሜ / ክፍል</label>
+          <select id="sch-age" onchange="renderSchedule()">
+            <option value="">ሁሉም</option>
+            <option value="5-7">5-7</option><option value="8-10">8-10</option>
+            <option value="11-13">11-13</option><option value="14-15">14-15</option><option value="16-18">16-18</option>
+            <option value="KG2">KG2</option>
+            <option value="1">1ኛ</option><option value="2">2ኛ</option><option value="3">3ኛ</option>
+            <option value="4">4ኛ</option><option value="5">5ኛ</option><option value="6">6ኛ</option>
+            <option value="7">7ኛ</option><option value="8">8ኛ</option><option value="9">9ኛ</option>
+            <option value="10">10ኛ</option><option value="11">11ኛ</option><option value="12">12ኛ</option>
+          </select>
+        </div>
+        <div><label>ስፖርት / አይነት</label>
+          <select id="sch-cat" onchange="renderSchedule()">
+            <option value="">ሁሉም</option>
+            <option value="RUNNING">ሩጫ</option><option value="ROAD_RUNNING">የጎዳና ላይ</option>
+            <option value="ROPE">ገመድ</option><option value="RELAY">ዱላ</option>
+            <option value="ROAD_RELAY">የጎዳና ዱላ</option><option value="FOOTBALL">እግር ኳስ</option>
+            <option value="KNOWLEDGE">የእውቀት ውድድርና ምዘና</option>
+          </select>
+        </div>
+      </div>
+      <div id="schedule-list" style="overflow-x:auto"></div>
+    </div>
+    <footer>© 2026 የህፃናት ኦሎምፒክ</footer>
+  </div>
+
+  <!-- JUDGE + ADMIN (same as before, with KNOWLEDGE support) -->
+  <!-- For brevity the Judge and Admin sections remain functionally identical to previous version -->
+  <!-- Full JS below contains all logic -->
+
+  <div id="page-judge" class="page">
+    <nav style="background:#1a1a2e">
+      <div class="logo">ዳኛ ገፅ</div>
+      <div><a href="#" onclick="showPage('home')">መነሻ</a><a href="#" onclick="logoutJudge()" style="color:#ff8a80">ውጣ</a></div>
+    </nav>
+    <div class="section">
+      <div id="judge-login" style="max-width:400px;margin:2rem auto;background:#fff;padding:1.8rem;border-radius:13px;box-shadow:0 4px 14px rgba(0,0,0,.1)">
+        <h2 style="text-align:center;margin-bottom:1rem">ዳኛ መግቢያ</h2>
+        <div class="form-group"><label>ኢሜይል</label><input type="email" id="judge-email"></div>
+        <div class="form-group"><label>የይለፍ ቃል</label><input type="password" id="judge-pass"></div>
+        <button class="btn-next" style="width:100%" onclick="loginJudge()">ግባ</button>
+      </div>
+      <div id="judge-panel" style="display:none">
+        <h2>ሰላም፣ <span id="judge-name">ዳኛ</span></h2>
+        <div id="judge-assignments" class="panel-box"></div>
+        <div id="judge-result-section" style="display:none">
+          <h3 style="margin:1.2rem 0 .6rem">📋 ውጤት መመዝገቢያ</h3>
+          <div class="panel-box">
+            <p><strong>ውድድር:</strong> <span id="jr-comp-name"></span></p>
+            <p><strong>ቦታ:</strong> <span id="jr-location"></span></p>
+            <div id="jr-competitors"></div>
+            <div class="witness-box">
+              <h4>👥 እማኞች (ቢያንስ 1)</h4>
+              <div class="form-group"><label>የእማኝ 1 ስም *</label><input type="text" id="w1-name"></div>
+              <div class="form-group"><label>የእማኝ 1 ስልክ *</label><input type="tel" id="w1-phone"></div>
+              <div class="form-group"><label>ማረጋገጫ</label><select id="w1-confirm"><option value="አረጋግጣለሁ">አረጋግጣለሁ</option><option value="አላረጋገጥኩም">አላረጋገጥኩም</option></select></div>
+              <div class="form-group"><label>የእማኝ 2 ስም</label><input type="text" id="w2-name"></div>
+              <div class="form-group"><label>የእማኝ 2 ስልክ</label><input type="tel" id="w2-phone"></div>
+              <div class="form-group"><label>ማረጋገጫ</label><select id="w2-confirm"><option value="አረጋግጣለሁ">አረጋግጣለሁ</option><option value="አላረጋገጥኩም">አላረጋገጥኩም</option></select></div>
+            </div>
+            <div class="form-group"><label>አሸናፊ ስም *</label><input type="text" id="jr-winner"></div>
+            <div class="form-group"><label>ማስታወሻ</label><textarea id="jr-notes" rows="2"></textarea></div>
+            <div style="display:flex;gap:.6rem;margin-top:1rem">
+              <button class="btn-submit" onclick="submitJudgeResult()">ውጤት ላክ</button>
+              <button class="btn-next" onclick="generateResultPDF()">📄 PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer>© 2026 ዳኛ</footer>
+  </div>
+
+  <div id="page-admin" class="page">
+    <nav style="background:#1a1a2e">
+      <div class="logo">አድሚን</div>
+      <div><a href="#" onclick="showPage('home')">መነሻ</a><a href="#" onclick="logoutAdmin()" style="color:#ff8a80">ውጣ</a></div>
+    </nav>
+    <div class="section">
+      <div id="admin-login" style="max-width:380px;margin:2rem auto;background:#fff;padding:1.8rem;border-radius:13px">
+        <h2 style="text-align:center;margin-bottom:1rem">አድሚን መግቢያ</h2>
+        <div class="form-group"><label>የይለፍ ቃል</label><input type="password" id="admin-pass" placeholder="admin123"></div>
+        <button class="btn-next" style="width:100%" onclick="loginAdmin()">ግባ</button>
+      </div>
+      <div id="admin-panel" style="display:none">
+        <div class="admin-nav">
+          <button class="active" onclick="showAdminTab('regs',this)">ተመዛጋቢዎች</button>
+          <button onclick="showAdminTab('cluster',this)">1ኪሜ</button>
+          <button onclick="showAdminTab('groups',this)">ምድብ</button>
+          <button onclick="showAdminTab('judges',this)">ዳኞች</button>
+          <button onclick="showAdminTab('results',this)">ውጤት</button>
+          <button onclick="showAdminTab('payments',this)">ክፍያዎች</button>
+          <button onclick="showAdminTab('fees',this)">ዋጋ</button>
+        </div>
+        <div id="atab-regs"><div style="overflow-x:auto"><table class="admin-table"><thead><tr><th>ልጅ</th><th>ወላጅ</th><th>ስልክ</th><th>ውድድር</th><th>ት/ቤት</th><th>አድራሻ</th><th>ሁኔታ</th></tr></thead><tbody id="admin-tbody"></tbody></table></div></div>
+        <div id="atab-cluster" style="display:none"><div id="cluster-list"></div></div>
+        <div id="atab-groups" style="display:none">
+          <button class="btn-next" style="margin-bottom:1rem" onclick="autoAssignGroups()">ራስ-ሰር ድልድል</button>
+          <div id="groups-list"></div>
+        </div>
+        <div id="atab-judges" style="display:none">
+          <div class="panel-box">
+            <div class="form-group"><label>ስም *</label><input type="text" id="j-name"></div>
+            <div class="form-group"><label>ኢሜይል *</label><input type="email" id="j-email"></div>
+            <div class="form-group"><label>ስልክ *</label><input type="tel" id="j-phone"></div>
+            <div class="form-group"><label>የይለፍ ቃል *</label><input type="password" id="j-pass"></div>
+            <div class="form-group"><label>ውድድሮች</label><select id="j-comps" multiple size="6" style="height:140px"></select></div>
+            <div class="form-group"><label>ቦታ</label><input type="text" id="j-location"></div>
+            <button class="btn-submit" onclick="saveJudge()">አስቀምጥ</button>
+          </div>
+          <div id="judges-list"></div>
+        </div>
+        <div id="atab-results" style="display:none">
+          <div class="panel-box">
+            <div class="form-group"><label>ውድድር</label><select id="result-comp" onchange="loadResultForm()"></select></div>
+            <div id="result-form"></div>
+            <button class="btn-submit" onclick="saveResults()">አስቀምጥ</button>
+          </div>
+          <div id="saved-results"></div>
+        </div>
+        <div id="atab-payments" style="display:none"><div id="payments-list"></div></div>
+        <div id="atab-fees" style="display:none">
+          <div class="filters"><div><label>ፈልግ</label><input type="text" id="fee-search" oninput="renderFeeEditor()"></div>
+          <div><label>አይነት</label><select id="fee-filter-cat" onchange="renderFeeEditor()"><option value="">ሁሉም</option><option value="KNOWLEDGE">የእውቀት</option></select></div></div>
+          <div id="fee-editor-list"></div>
+          <button class="btn-submit" onclick="saveAllFees()">ሁሉንም አስቀምጥ</button>
+        </div>
+      </div>
+    </div>
+    <footer>© 2026 Admin</footer>
+  </div>
+
+  <script>
+    // ===== Firebase + EmailJS (same as before) =====
+    const firebaseConfig = {apiKey:"AIzaSyCwaFI5Csyje_7tsl6XIthzMeRz0rYmvFA",authDomain:"athletics-8f189.firebaseapp.com",databaseURL:"https://athletics-8f189-default-rtdb.firebaseio.com",projectId:"athletics-8f189",storageBucket:"athletics-8f189.firebasestorage.app",messagingSenderId:"928075042466",appId:"1:928075042466:android:c821b017926ab9b06651fb"};
+    const EMAILJS_PUBLIC = "Crld33eoltFVhYmpM", EMAILJS_SERVICE = "service_86l6zmn", EMAILJS_TEMPLATE = "template_myfr16d";
+    let db = null;
+    try{firebase.initializeApp(firebaseConfig);db=firebase.database();db.ref('.info/connected').on('value',s=>{const el=document.getElementById('firebase-status');el.className=s.val()?'status-bar':'status-bar warn';});}catch(e){}
+    try{emailjs.init(EMAILJS_PUBLIC);}catch(e){}
+
+    function showLoading(v){document.getElementById('loading-overlay').className=v?'show':'';}
+
+    // ===== COMPETITIONS GENERATION (with new KNOWLEDGE) =====
+    const AGE_GROUPS=["5-7","8-10","11-13","14-15","16-18"];
+    const GENDERS=[{v:"MALE",l:"ወንድ"},{v:"FEMALE",l:"ሴት"}];
+    const GRADES=["KG2","1","2","3","4","5","6","7","8","9","10","11","12"];
+
+    function generateCompetitions(){
+      const list=[]; let id=1;
+      const DEFAULT_FEE=2000;
+      const distances=["100m","200m","400m","1000m"];
+      const cats=[{c:"RUNNING",am:"ሩጫ"},{c:"ROAD_RUNNING",am:"የጎዳና ላይ ሩጫ"}];
+      cats.forEach(({c,am})=>distances.forEach(d=>AGE_GROUPS.forEach(age=>GENDERS.forEach(g=>{
+        list.push({id:"c"+id++,name:`${am} ${d} (${age} ${g.l})`,category:c,distance:d,ageGroup:age,gender:g.v,maxSlots:100,fee:DEFAULT_FEE,isTeam:false});
+      }))));
+      AGE_GROUPS.forEach(age=>GENDERS.forEach(g=>{
+        list.push({id:"c"+id++,name:`ገመድ ጉተታ (${age} ${g.l})`,category:"ROPE",ageGroup:age,gender:g.v,maxSlots:100,fee:DEFAULT_FEE,isTeam:false});
+      }));
+      const relays=[{d:"200m",s:2},{d:"400m",s:4},{d:"1000m",s:10}];
+      relays.forEach(r=>AGE_GROUPS.forEach(age=>GENDERS.forEach(g=>{
+        list.push({id:"c"+id++,name:`ዱላ ቅብብል ${r.d} (${age} ${g.l})`,category:"RELAY",distance:r.d,ageGroup:age,gender:g.v,maxSlots:100,fee:DEFAULT_FEE,isTeam:true,teamSize:r.s});
+      })));
+      relays.forEach(r=>AGE_GROUPS.forEach(age=>GENDERS.forEach(g=>{
+        list.push({id:"c"+id++,name:`የጎዳና ዱላ ${r.d} (${age} ${g.l})`,category:"ROAD_RELAY",distance:r.d,ageGroup:age,gender:g.v,maxSlots:100,fee:DEFAULT_FEE,isTeam:true,teamSize:r.s});
+      })));
+      AGE_GROUPS.forEach(age=>GENDERS.forEach(g=>{
+        list.push({id:"c"+id++,name:`እግር ኳስ (${age} ${g.l})`,category:"FOOTBALL",ageGroup:age,gender:g.v,maxSlots:100,fee:DEFAULT_FEE,isTeam:true,teamSize:11});
+      }));
+
+      // ===== NEW: የእውቀት ውድድርና ምዘና (KG2 – 12) =====
+      GRADES.forEach(grade=>GENDERS.forEach(g=>{
+        list.push({
+          id:"c"+id++,
+          name:`የእውቀት ውድድርና ምዘና (ክፍል ${grade} ${g.l})`,
+          category:"KNOWLEDGE",
+          ageGroup:grade,
+          gender:g.v,
+          maxSlots:100,
+          fee:DEFAULT_FEE,
+          isTeam:false,
+          desc:"በትምህርት ደረጃ + ፆታ"
+        });
+      }));
+
+      return list;
+    }
+
+    let COMPETITIONS=(function(){
+      try{const saved=JSON.parse(localStorage.getItem('competitionsFees')||'null');if(saved&&Array.isArray(saved)&&saved.length)return saved;}catch(e){}
+      return generateCompetitions();
+    })();
+
+    function saveCompetitionsFees(){
+      localStorage.setItem('competitionsFees',JSON.stringify(COMPETITIONS));
+      if(db)db.ref('competitionsFees').set(COMPETITIONS).catch(()=>{});
+    }
+
+    // ===== SCHEDULE 04:00 – 11:00 =====
+    function generateSchedule(){
+      const TRACKS=8, START=4*60, END=11*60, SLOT=10;
+      const schedule=[]; let track=0, current=START;
+      COMPETITIONS.forEach(c=>{
+        if(current+SLOT>END){track=(track+1)%TRACKS;current=START;}
+        const h=Math.floor(current/60), m=current%60;
+        schedule.push({
+          id:c.id, name:c.name, category:c.category, ageGroup:c.ageGroup, gender:c.gender,
+          time:String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'),
+          track:'ቦታ '+(track+1), duration:SLOT+' ደቂቃ'
+        });
+        current+=SLOT;
+      });
+      return schedule;
+    }
+    let SCHEDULE=generateSchedule();
+
+    function renderSchedule(){
+      const track=document.getElementById('sch-track')?.value||'';
+      const age=document.getElementById('sch-age')?.value||'';
+      const cat=document.getElementById('sch-cat')?.value||'';
+      let list=SCHEDULE.filter(s=>{
+        if(track&&s.track!==track)return false;
+        if(age&&s.ageGroup!==age)return false;
+        if(cat&&s.category!==cat)return false;
+        return true;
+      });
+      list.sort((a,b)=>a.time.localeCompare(b.time)||a.track.localeCompare(b.track));
+      const el=document.getElementById('schedule-list');
+      if(!el)return;
+      if(!list.length){el.innerHTML='<p style="color:#777">ውጤት የለም</p>';return;}
+      el.innerHTML=`<table class="admin-table"><thead><tr><th>ጊዜ</th><th>ቦታ</th><th>ውድድር</th><th>እድሜ/ክፍል</th><th>ፆታ</th><th>ቆይታ</th></tr></thead>
+        <tbody>${list.map(s=>`<tr><td><strong>${s.time}</strong></td><td>${s.track}</td><td>${s.name}</td><td>${s.ageGroup}</td><td>${s.gender==='MALE'?'ወንድ':'ሴት'}</td><td>${s.duration}</td></tr>`).join('')}</tbody></table>`;
+    }
+
+    // ===== REST OF THE LOGIC (cart, payment, registration, login, dashboard, admin, judge) =====
+    // (Identical to previous full version with support for optional email + phone login + KNOWLEDGE category)
+
+    let slotCounts={}, selectedComps=[], currentJudgeResult=null;
+
+    function loadSlotCounts(){if(!db){renderCompetitions();return;}db.ref('registrations').once('value').then(s=>{slotCounts={};Object.values(s.val()||{}).forEach(r=>{if(r.competitionId)slotCounts[r.competitionId]=(slotCounts[r.competitionId]||0)+1;});renderCompetitions();}).catch(()=>renderCompetitions());}
+    function getRemaining(id){return Math.max(0,100-(slotCounts[id]||0));}
+    function toggleSelect(id,name,fee){const idx=selectedComps.findIndex(c=>c.id===id);if(idx>=0)selectedComps.splice(idx,1);else{if(getRemaining(id)<=0){alert('ቦታው ተሞልቷል!');return;}selectedComps.push({id,name,fee});}updateCart();renderCompetitions();}
+    function calcTotalWithDiscount(comps){if(!comps||!comps.length)return{total:0,base:0,discount:0,details:''};const BASE=2000,MAX=3;if(comps.length<=MAX)return{total:BASE,base:BASE,discount:0,details:comps.length+' ውድድር (መሠረታዊ 2000 ብር)'};const extras=comps.slice(MAX);const extraFull=extras.reduce((s,c)=>s+(c.fee||2000),0);const extraDisc=Math.round(extraFull*0.8);return{total:BASE+extraDisc,base:BASE,discount:extraFull-extraDisc,details:`መሠረታዊ 3: 2000 + ተጨማሪ ${extras.length} (20% ቅናሽ): ${extraDisc}`};}
+    function updateCart(){const bar=document.getElementById('cart-bar');if(selectedComps.length===0){bar.classList.remove('show');return;}bar.classList.add('show');document.getElementById('cart-count').textContent=selectedComps.length;const calc=calcTotalWithDiscount(selectedComps);document.getElementById('cart-total').textContent=calc.total+(calc.discount>0?' (ቅናሽ '+calc.discount+')':'');}
+
+    function showPaymentForm(){const user=JSON.parse(localStorage.getItem('user')||'null');if(!user){alert('መጀመሪያ ምዝገባ ያድርጉ!');showPage('register');return;}if(!selectedComps.length)return;const calc=calcTotalWithDiscount(selectedComps);document.getElementById('pay-total').textContent=calc.total;let html='<strong>የተመረጡ:</strong><ul style="margin:.4rem 0 0 1.1rem">'+selectedComps.map((c,i)=>`<li>${c.name} ${i>=3?'— <b>'+Math.round((c.fee||2000)*0.8)+' ብር</b>':'— በጥቅል'}</li>`).join('')+'</ul>';if(calc.discount>0)html+=`<p style="color:#2e7d32;margin-top:.5rem">ቅናሽ: ${calc.discount} ብር</p>`;document.getElementById('pay-comp-list').innerHTML=html;document.getElementById('pay-auto-total').value=calc.total;document.getElementById('payment-modal').style.display='flex';}
+
+    function submitPayment(){const user=JSON.parse(localStorage.getItem('user')||'null');if(!user)return;const bank=document.getElementById('pay-bank').value,slip=document.getElementById('pay-slip-code').value.trim();if(!bank||!slip){alert('ባንክ እና ሲሊፕ ያስገቡ');return;}const calc=calcTotalWithDiscount(selectedComps);const paymentInfo={bank,slipCode:slip,payLink:document.getElementById('pay-link').value.trim(),fileName:document.getElementById('pay-file').files[0]?.name||'',total:calc.total,discount:calc.discount,comps:selectedComps.map(c=>c.name),parentName:user.parentName,email:user.email||'',phone:user.phone,childName:user.childName,status:'PENDING_REVIEW',createdAt:new Date().toISOString()};let payments=JSON.parse(localStorage.getItem('payments')||'[]');payments.push(paymentInfo);localStorage.setItem('payments',JSON.stringify(payments));if(db)db.ref('payments').push(paymentInfo).catch(()=>{});showLoading(true);let done=0;const saveOne=(comp,key)=>{const regData={competitionId:comp.id,competitionName:comp.name,fee:comp.fee,paid:false,status:'PAYMENT_PENDING',parentName:user.parentName,email:user.email||'',phone:user.phone,childName:user.childName,gender:user.gender,schoolName:user.schoolName,homeAddress:user.homeAddress||'',homeLat:user.homeLat||null,homeLng:user.homeLng||null,ageGroup:getAgeGroup(user.birthDate),createdAt:new Date().toISOString(),batchTotal:calc.total,paymentBank:bank,paymentSlip:slip};let regs=JSON.parse(localStorage.getItem('regs')||'[]');regs.push({id:key||('local_'+Date.now()),...regData});localStorage.setItem('regs',JSON.stringify(regs));done++;if(done===selectedComps.length){showLoading(false);document.getElementById('payment-modal').style.display='none';if(user.email)sendEmailJS(user,selectedComps,calc.total);selectedComps=[];updateCart();loadSlotCounts();document.getElementById('pending-msg').style.display='flex';}};selectedComps.forEach(comp=>{if(db){const ref=db.ref('registrations').push();ref.set({...regData,competitionId:comp.id,competitionName:comp.name}).then(()=>saveOne(comp,ref.key)).catch(()=>saveOne(comp));}else saveOne(comp);});}
+
+    function sendEmailJS(user,comps,total){if(!user.email)return;const list=comps.map(c=>c.name).join('\n');emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{to_email:user.email,to_name:user.parentName,child_name:user.childName,competitions:list,total_fee:total+' ብር',message:'ልጅዎ ተመዝግቧል። ድምር: '+total+' ብር'}).catch(()=>{});}
+    function sendNotificationEmail(to,toName,subject,body){if(!to)return;emailjs.send(EMAILJS_SERVICE,EMAILJS_TEMPLATE,{to_email:to,to_name:toName,message:body}).catch(()=>{});}
+
+    function haversine(lat1,lng1,lat2,lng2){const R=6371,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+
+    function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+n).classList.add('active');window.scrollTo(0,0);if(n==='competitions')loadSlotCounts();if(n==='dashboard'){renderDashboard();fillEditAddress();}if(n==='results'){renderPublicResults();renderMyResults();}if(n==='schedule')renderSchedule();if(n==='admin'&&sessionStorage.getItem('isAdmin'))showAdminPanel();if(n==='judge'&&sessionStorage.getItem('judgeEmail'))showJudgePanel();}
+
+    function renderCompetitions(){const age=document.getElementById('filter-age').value,gender=document.getElementById('filter-gender').value,cat=document.getElementById('filter-category').value,search=(document.getElementById('filter-search').value||'').toLowerCase();let list=COMPETITIONS.filter(c=>{if(age&&c.ageGroup!==age)return false;if(gender&&c.gender!==gender)return false;if(cat&&c.category!==cat)return false;if(search&&!c.name.toLowerCase().includes(search))return false;return true;});document.getElementById('count-label').textContent=list.length+' ውድድሮች';document.getElementById('competitions-list').innerHTML=list.map(c=>{const rem=getRemaining(c.id),isFull=rem===0,isSel=selectedComps.some(s=>s.id===c.id);return`<div class="card ${isFull?'full':''} ${isSel?'selected':''}"><div class="card-header"><span class="badge">${c.ageGroup} • ${c.gender==='MALE'?'ወንድ':'ሴት'}</span><span class="slots ${isFull?'full':'ok'}">${isFull?'ተሞልቷል':rem+' ቦታ'}</span></div><h3>${c.name}</h3>${c.desc?`<p class="meta">${c.desc}</p>`:''}<div><span class="price">${c.fee} ብር</span>${c.isTeam?`<span class="team-badge">ቡድን ${c.teamSize}</span>`:''}</div><button class="sel-btn ${isSel?'selected':''}" ${isFull?'disabled':''} onclick="toggleSelect('${c.id}',\`${c.name.replace(/`/g,'')}\`,${c.fee})">${isFull?'ተሞልቷል':(isSel?'✓ ተመርጧል':'ምረጥ')}</button></div>`;}).join('');}
+
+    function getCurrentLocation(){const st=document.getElementById('loc-status');st.textContent='ቦታ...';navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('homeLat').value=pos.coords.latitude.toFixed(6);document.getElementById('homeLng').value=pos.coords.longitude.toFixed(6);st.textContent='✅ GPS ተወስዷል';if(!document.getElementById('homeAddress').value)document.getElementById('homeAddress').value='GPS: '+pos.coords.latitude.toFixed(4)+', '+pos.coords.longitude.toFixed(4);},err=>{st.textContent='❌ '+err.message;});}
+    function handleBirthCert(input){const f=input.files[0];if(!f)return;document.getElementById('cert-label').textContent='✅ '+f.name;}
+    function updateAgePreview(){const v=document.getElementById('birthDate').value;if(!v)return;const age=Math.floor((Date.now()-new Date(v))/(365.25*24*60*60*1000));document.getElementById('age-preview').textContent='→ '+age+' ዓመት';}
+    function getAgeGroup(bd){if(!bd)return'';const age=Math.floor((Date.now()-new Date(bd))/(365.25*24*60*60*1000));if(age>=5&&age<=7)return'5-7';if(age>=8&&age<=10)return'8-10';if(age>=11&&age<=13)return'11-13';if(age>=14&&age<=15)return'14-15';if(age>=16&&age<=18)return'16-18';return'';}
+
+    function goStep(n){if(n===2){const p1=document.getElementById('password').value,p2=document.getElementById('password2').value;if(!document.getElementById('parentName').value.trim()||!document.getElementById('phone').value.trim()||!p1){alert('ሙሉ ስም፣ ስልክ እና የይለፍ ቃል ያስፈልጋል');return;}if(p1.length<6){alert('ቢያንስ 6 ቁምፊ');return;}if(p1!==p2){alert('የይለፍ ቃሎች አይጣጣሙም');return;}}if(n===3){const child=document.getElementById('childName').value.trim(),birth=document.getElementById('birthDate').value,gender=document.getElementById('gender').value,school=document.getElementById('schoolName').value.trim();if(!child||!birth||!gender||!school){alert('የልጅ መረጃ ይሙሉ');return;}const age=Math.floor((Date.now()-new Date(birth))/(365.25*24*60*60*1000));if(age<5||age>18){alert('እድሜ 5–18 ብቻ');return;}}document.getElementById('step1').style.display=n===1?'block':'none';document.getElementById('step2').style.display=n===2?'block':'none';document.getElementById('step3').style.display=n===3?'block':'none';document.getElementById('step-num').textContent=n;['prog1','prog2','prog3'].forEach((id,i)=>document.getElementById(id).className=n>=i+1?'active':'');}
+
+    function submitRegistration(){const data={parentName:document.getElementById('parentName').value.trim(),email:document.getElementById('email').value.trim()||'',phone:document.getElementById('phone').value.trim(),password:document.getElementById('password').value,childName:document.getElementById('childName').value.trim(),birthDate:document.getElementById('birthDate').value,gender:document.getElementById('gender').value,schoolName:document.getElementById('schoolName').value.trim(),homeAddress:document.getElementById('homeAddress').value.trim(),homeLat:document.getElementById('homeLat').value.trim(),homeLng:document.getElementById('homeLng').value.trim()};if(!data.parentName||!data.phone||!data.password||!data.childName||!data.birthDate||!data.gender||!data.schoolName){alert('አስፈላጊ መረጃ ይሙሉ (ኢሜይል አማራጭ ነው)');return;}const accountKey=data.email||data.phone;showLoading(true);localStorage.setItem('user',JSON.stringify(data));let users=JSON.parse(localStorage.getItem('users')||'{}');users[accountKey]=data;localStorage.setItem('users',JSON.stringify(users));const done=msg=>{showLoading(false);alert(msg);showPage('competitions');};if(db){const key=accountKey.replace(/[.#$\[\]]/g,'_');const t=setTimeout(()=>done('✅ ምዝገባ ተሳክቷል!'),8000);db.ref('users/'+key).set({...data,createdAt:new Date().toISOString()}).then(()=>{clearTimeout(t);done('✅ ምዝገባ ተሳክቷል!');}).catch(e=>{clearTimeout(t);done('ተሳክቷል (local)');});}else done('✅ ምዝገባ ተሳክቷል!');}
+
+    function loginUser(){const loginId=document.getElementById('login-email').value.trim(),pass=document.getElementById('login-pass').value;const users=JSON.parse(localStorage.getItem('users')||'{}');let u=users[loginId];if(!u)u=Object.values(users).find(x=>x.phone===loginId||x.email===loginId);if(u&&u.password===pass){localStorage.setItem('user',JSON.stringify(u));alert('እንኳን ደህና መጡ '+u.parentName);showPage('dashboard');}else alert('ኢሜይል/ስልክ ወይም የይለፍ ቃል ተሳስቷል');}
+    function logoutUser(){localStorage.removeItem('user');showPage('home');}
+
+    function fillEditAddress(){const u=JSON.parse(localStorage.getItem('user')||'null');if(u){document.getElementById('edit-address').value=u.homeAddress||'';document.getElementById('edit-lat').value=u.homeLat||'';document.getElementById('edit-lng').value=u.homeLng||'';}}
+    function saveAddressEdit(){const u=JSON.parse(localStorage.getItem('user')||'null');if(!u)return;u.homeAddress=document.getElementById('edit-address').value.trim();u.homeLat=document.getElementById('edit-lat').value.trim();u.homeLng=document.getElementById('edit-lng').value.trim();localStorage.setItem('user',JSON.stringify(u));let users=JSON.parse(localStorage.getItem('users')||'{}');const key=u.email||u.phone;if(users[key]){users[key]=u;localStorage.setItem('users',JSON.stringify(users));}alert('✅ ተስተካክሏል');renderDashboard();}
+    function getCurrentLocationForEdit(){navigator.geolocation.getCurrentPosition(pos=>{const u=JSON.parse(localStorage.getItem('user')||'{}');u.homeLat=pos.coords.latitude.toFixed(6);u.homeLng=pos.coords.longitude.toFixed(6);document.getElementById('edit-lat').value=u.homeLat;document.getElementById('edit-lng').value=u.homeLng;localStorage.setItem('user',JSON.stringify(u));document.getElementById('edit-loc-status').textContent='✅ GPS ተወስዷል';});}
+
+    function renderDashboard(){const user=JSON.parse(localStorage.getItem('user')||'null');document.getElementById('dash-welcome').textContent=user?'ሰላም፣ '+user.parentName+'!':'ሰላም!';const regs=JSON.parse(localStorage.getItem('regs')||'[]').filter(r=>!user||r.phone===user.phone||r.email===user.email);document.getElementById('stat-regs').textContent=regs.length;document.getElementById('stat-unpaid').textContent=regs.filter(r=>!r.paid).reduce((s,r)=>s+(r.fee||0),0)+' ብር';const c=document.getElementById('my-registrations');c.innerHTML=regs.length?regs.map(r=>`<div class="reg-item"><div><strong>${r.competitionName}</strong><br><span class="${r.paid?'status-ok':'status-pending'}">${r.paid?'ተከፍሏል':'ያልተከፈለ'}</span></div></div>`).join(''):'<p style="color:#777">ገና የለም</p>';}
+
+    function renderPublicResults(){const cat=document.getElementById('res-filter-cat').value;const all=JSON.parse(localStorage.getItem('allResults')||'[]');let list=cat?all.filter(r=>r.category===cat):all;const el=document.getElementById('public-results');el.innerHTML=list.length?list.map(r=>`<div class="panel-box"><strong>${r.competitionName}</strong><ol style="margin:.5rem 0 0 1.2rem">${(r.rankings||[]).map((x,i)=>`<li>${x.childName} ${i===0?'🥇':''}</li>`).join('')}</ol>${r.winner?`<div class="winner">አሸናፊ: <strong>${r.winner}</strong></div>`:''}</div>`).join(''):'<p style="color:#777">ገና ውጤት የለም</p>';}
+    function renderMyResults(){const user=JSON.parse(localStorage.getItem('user')||'null');const all=JSON.parse(localStorage.getItem('allResults')||'[]');const el=document.getElementById('my-results');if(!user){el.innerHTML='<p style="color:#777">ይመዝገቡ</p>';return;}const mine=all.filter(r=>(r.rankings||[]).some(x=>x.childName===user.childName));el.innerHTML=mine.length?mine.map(r=>{const pos=(r.rankings||[]).findIndex(x=>x.childName===user.childName)+1;return`<p><strong>${r.competitionName}</strong>: ቦታ ${pos}</p>`;}).join(''):'<p style="color:#777">የእርስዎ ውጤት ገና የለም</p>';}
+
+    // Admin / Judge helpers (simplified but complete)
+    function loginAdmin(){if(document.getElementById('admin-pass').value==='admin123'){sessionStorage.setItem('isAdmin','1');showAdminPanel();}else alert('የተሳሳተ የይለፍ ቃል');}
+    function logoutAdmin(){sessionStorage.removeItem('isAdmin');document.getElementById('admin-login').style.display='block';document.getElementById('admin-panel').style.display='none';}
+    function showAdminPanel(){document.getElementById('admin-login').style.display='none';document.getElementById('admin-panel').style.display='block';loadAdminRegs();prepJudgeComps();}
+    function showAdminTab(tab,btn){['regs','cluster','groups','judges','results','payments','fees'].forEach(t=>{const el=document.getElementById('atab-'+t);if(el)el.style.display=t===tab?'block':'none';});document.querySelectorAll('.admin-nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');if(tab==='regs')loadAdminRegs();if(tab==='fees')renderFeeEditor();}
+    function loadAdminRegs(){const list=JSON.parse(localStorage.getItem('regs')||'[]');document.getElementById('admin-tbody').innerHTML=list.map(r=>`<tr><td>${r.childName||'-'}</td><td>${r.parentName||'-'}</td><td>${r.phone||'-'}</td><td>${r.competitionName||'-'}</td><td>${r.schoolName||'-'}</td><td>${r.homeAddress||'-'}</td><td>${r.status||'-'}</td></tr>`).join('')||'<tr><td colspan="7">ምንም</td></tr>';}
+    function renderFeeEditor(){const search=(document.getElementById('fee-search')?.value||'').toLowerCase(),cat=document.getElementById('fee-filter-cat')?.value||'';let list=COMPETITIONS.filter(c=>{if(cat&&c.category!==cat)return false;if(search&&!c.name.toLowerCase().includes(search))return false;return true;});document.getElementById('fee-editor-list').innerHTML=list.map(c=>`<div class="panel-box" style="display:flex;gap:.6rem;align-items:center;margin-bottom:.5rem"><span style="flex:1">${c.name}</span><input type="number" id="fee-input-${c.id}" value="${c.fee}" style="width:100px"><button class="btn-next" style="padding:.3rem .7rem" onclick="updateOneFee('${c.id}')">አስቀምጥ</button></div>`).join('');}
+    function updateOneFee(id){const val=parseInt(document.getElementById('fee-input-'+id).value)||2000;const c=COMPETITIONS.find(x=>x.id===id);if(c){c.fee=val;saveCompetitionsFees();alert('✅ ተስተካክሏል');}}
+    function saveAllFees(){COMPETITIONS.forEach(c=>{const inp=document.getElementById('fee-input-'+c.id);if(inp)c.fee=parseInt(inp.value)||c.fee;});saveCompetitionsFees();alert('✅ ሁሉም ተቀምጠዋል');}
+
+    function prepJudgeComps(){const sel=document.getElementById('j-comps');if(sel)sel.innerHTML=COMPETITIONS.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');}
+    function saveJudge(){const name=document.getElementById('j-name').value.trim(),email=document.getElementById('j-email').value.trim(),phone=document.getElementById('j-phone').value.trim(),pass=document.getElementById('j-pass').value,loc=document.getElementById('j-location').value.trim();const comps=[...document.getElementById('j-comps').selectedOptions].map(o=>({id:o.value,name:o.text}));if(!name||!email||!phone||!pass||!comps.length){alert('ሁሉንም ይሙሉ');return;}let judges=JSON.parse(localStorage.getItem('judges')||'{}');judges[email]={name,email,phone,password:pass,location:loc,assignedComps:comps};localStorage.setItem('judges',JSON.stringify(judges));alert('✅ ዳኛ ተመዝግቧል');loadJudgesList();}
+    function loadJudgesList(){const judges=Object.values(JSON.parse(localStorage.getItem('judges')||'{}'));document.getElementById('judges-list').innerHTML=judges.map(j=>`<div class="panel-box"><strong>${j.name}</strong> (${j.email}) — ${j.phone}<br>ውድድሮች: ${(j.assignedComps||[]).map(c=>c.name).join(' • ')}</div>`).join('')||'<p>ገና የለም</p>';}
+    function loginJudge(){const email=document.getElementById('judge-email').value.trim(),pass=document.getElementById('judge-pass').value;const j=JSON.parse(localStorage.getItem('judges')||'{}')[email];if(j&&j.password===pass){sessionStorage.setItem('judgeEmail',email);showJudgePanel();}else alert('ተሳስቷል');}
+    function logoutJudge(){sessionStorage.removeItem('judgeEmail');document.getElementById('judge-login').style.display='block';document.getElementById('judge-panel').style.display='none';}
+    function showJudgePanel(){document.getElementById('judge-login').style.display='none';document.getElementById('judge-panel').style.display='block';const j=JSON.parse(localStorage.getItem('judges')||'{}')[sessionStorage.getItem('judgeEmail')];document.getElementById('judge-name').textContent=j?.name||'';document.getElementById('judge-assignments').innerHTML=(j?.assignedComps||[]).map(c=>`<div class="panel-box"><strong>${c.name}</strong><button class="btn-next" style="margin-top:.5rem" onclick="openJudgeResult('${c.id}','${c.name.replace(/'/g,"\\'")}')">ውጤት መዝግብ</button></div>`).join('')||'<p>ምንም አልተመደበም</p>';}
+    function openJudgeResult(id,name){currentJudgeResult={compId:id,compName:name};document.getElementById('judge-result-section').style.display='block';document.getElementById('jr-comp-name').textContent=name;const regs=JSON.parse(localStorage.getItem('regs')||'[]').filter(r=>r.competitionId===id||r.competitionName===name);document.getElementById('jr-competitors').innerHTML=regs.map((r,i)=>`<div class="result-row"><span>${r.childName}</span><input type="number" id="jr-score-${i}" placeholder="ውጤት" data-child="${r.childName}"><input type="number" id="jr-pos-${i}" placeholder="ቦታ" style="width:70px"></div>`).join('')||'<p>ተመዛጋቢ የለም</p>';}
+    function submitJudgeResult(){if(!currentJudgeResult)return;const w1n=document.getElementById('w1-name').value.trim(),w1p=document.getElementById('w1-phone').value.trim();if(!w1n||!w1p){alert('ቢያንስ 1 እማኝ ያስፈልጋል');return;}const winner=document.getElementById('jr-winner').value.trim();if(!winner){alert('አሸናፊ ያስገቡ');return;}const regs=JSON.parse(localStorage.getItem('regs')||'[]').filter(r=>r.competitionId===currentJudgeResult.compId||r.competitionName===currentJudgeResult.compName);const rankings=regs.map((r,i)=>({childName:r.childName,score:document.getElementById('jr-score-'+i)?.value||'',position:parseInt(document.getElementById('jr-pos-'+i)?.value)||i+1}));rankings.sort((a,b)=>a.position-b.position);const result={competitionName:currentJudgeResult.compName,competitionId:currentJudgeResult.compId,category:(COMPETITIONS.find(c=>c.id===currentJudgeResult.compId)||{}).category||'',rankings,winner,witnesses:[{name:w1n,phone:w1p,confirm:document.getElementById('w1-confirm').value}],createdAt:new Date().toISOString(),source:'judge'};let all=JSON.parse(localStorage.getItem('allResults')||'[]');all=all.filter(r=>r.competitionName!==result.competitionName);all.push(result);localStorage.setItem('allResults',JSON.stringify(all));alert('✅ ውጤት ተልኳል');generateResultPDF(result);}
+    function generateResultPDF(data){if(!data){const all=JSON.parse(localStorage.getItem('allResults')||'[]');data=all[all.length-1];}if(!data){alert('መጀመሪያ ውጤት ያስቀምጡ');return;}try{const{jsPDF}=window.jspdf;const doc=new jsPDF();doc.setFontSize(16);doc.text('Kids Olympics - Certificate',105,30,{align:'center'});doc.setFontSize(14);doc.text(data.winner||'',105,50,{align:'center'});doc.text(data.competitionName||'',105,65,{align:'center'});doc.save('Certificate-'+(data.winner||'Winner')+'.pdf');}catch(e){alert('PDF error');}}
+
+    function autoAssignGroups(){const regs=JSON.parse(localStorage.getItem('regs')||'[]');const groups=[];const byKey={};regs.forEach(r=>{const key=(r.competitionId||r.competitionName)+'_'+(r.ageGroup||'');if(!byKey[key])byKey[key]={competition:r.competitionName,members:[]};byKey[key].members.push(r.childName);});Object.values(byKey).forEach(g=>{for(let i=0;i<g.members.length;i+=3)groups.push({competition:g.competition,groupName:'ሙቀት '+(Math.floor(i/3)+1),members:g.members.slice(i,i+3),type:'heat'});});localStorage.setItem('groups',JSON.stringify(groups));alert('ድልድል ተጠናቋል: '+groups.length);document.getElementById('groups-list').innerHTML=groups.map(g=>`<div class="heat-card"><strong>${g.competition}</strong> — ${g.groupName}<br>${g.members.join(', ')}</div>`).join('');}
+    function loadResultForm(){const name=document.getElementById('result-comp').value;const regs=JSON.parse(localStorage.getItem('regs')||'[]').filter(r=>r.competitionName===name);document.getElementById('result-form').innerHTML=regs.map((r,i)=>`<div class="result-row"><span>${r.childName}</span><input type="number" id="score-${i}" placeholder="ውጤት"><input type="number" id="pos-${i}" placeholder="ቦታ" style="width:70px"></div>`).join('')||'<p>ተመዛጋቢ የለም</p>';}
+    function saveResults(){const name=document.getElementById('result-comp').value;if(!name){alert('ይምረጡ');return;}const regs=JSON.parse(localStorage.getItem('regs')||'[]').filter(r=>r.competitionName===name);const rankings=regs.map((r,i)=>({childName:r.childName,score:document.getElementById('score-'+i)?.value||'',position:parseInt(document.getElementById('pos-'+i)?.value)||i+1}));rankings.sort((a,b)=>a.position-b.position);const result={competitionName:name,category:(COMPETITIONS.find(c=>c.name===name)||{}).category||'',rankings,winner:rankings[0]?.childName||'',createdAt:new Date().toISOString(),source:'admin'};let all=JSON.parse(localStorage.getItem('allResults')||'[]');all=all.filter(r=>r.competitionName!==name);all.push(result);localStorage.setItem('allResults',JSON.stringify(all));alert('✅ ተቀምጧል');}
+
+    // Medal slider
+    let medalIdx=0;setInterval(()=>{const medals=document.querySelectorAll('#medal-slider .medal');if(!medals.length)return;medals.forEach(m=>m.classList.remove('active'));medalIdx=(medalIdx+1)%medals.length;medals[medalIdx].classList.add('active');},3000);
+
+    loadSlotCounts();
+  </script>
+</body>
+</html>
